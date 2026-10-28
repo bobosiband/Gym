@@ -1,0 +1,47 @@
+name: UML check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  diagrams-match-code:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Fetch base ref
+        if: github.event_name == 'pull_request'
+        run: git fetch origin ${{ github.base_ref }} --depth=1
+      - name: Check that UML changed with code
+        shell: bash
+        env:
+          UML_CHECK_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'HEAD~1' }}
+          UML_CHECK_HEAD: HEAD
+        run: node scripts/uml-check.mjs
+
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PlantUML and Graphviz
+        run: sudo apt-get update && sudo apt-get install -y plantuml graphviz
+      - name: Render all .puml files to SVG
+        shell: bash
+        run: |
+          find docs/uml -name '*.puml' -print0 | \
+            xargs -0 -I {} sh -c 'plantuml -tsvg "{}"'
+      - name: Upload rendered diagrams
+        uses: actions/upload-artifact@v4
+        with:
+          name: uml-svgs
+          path: docs/uml/**/*.svg
+          if-no-files-found: warn

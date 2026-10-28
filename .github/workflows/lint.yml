@@ -1,0 +1,84 @@
+name: Lint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  typescript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint:ts
+      - run: pnpm run lint:fmt
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for Python files
+        id: pyfiles
+        shell: bash
+        run: |
+          if find apps services packages -name '*.py' -print -quit 2>/dev/null | grep -q .; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-python@v5
+        if: steps.pyfiles.outputs.found == 'true'
+        with:
+          python-version: '3.12'
+      - name: Install ruff and black
+        if: steps.pyfiles.outputs.found == 'true'
+        run: pip install 'ruff>=0.6' 'black>=24.0'
+      - name: Ruff
+        if: steps.pyfiles.outputs.found == 'true'
+        run: ruff check .
+      - name: Black
+        if: steps.pyfiles.outputs.found == 'true'
+        run: black --check .
+
+  java:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for Java files
+        id: javafiles
+        shell: bash
+        run: |
+          if find apps services packages -name '*.java' -print -quit 2>/dev/null | grep -q .; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-java@v4
+        if: steps.javafiles.outputs.found == 'true'
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      - name: Download Checkstyle
+        if: steps.javafiles.outputs.found == 'true'
+        run: |
+          curl -sL -o checkstyle.jar \
+            https://github.com/checkstyle/checkstyle/releases/download/checkstyle-10.18.2/checkstyle-10.18.2-all.jar
+      - name: Run Checkstyle
+        if: steps.javafiles.outputs.found == 'true'
+        shell: bash
+        run: |
+          files=$(find apps services packages -name '*.java' 2>/dev/null || true)
+          if [ -n "$files" ]; then
+            echo "$files" | xargs java -jar checkstyle.jar -c ./checkstyle.xml
+          fi
