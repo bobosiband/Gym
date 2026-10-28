@@ -1,0 +1,31 @@
+@startuml event-flow
+title Gym: workout.logged fan-out
+
+actor User
+participant "PWA" as PWA
+participant "API Gateway" as APIGW
+participant "Lambda logging" as Logging
+database "DynamoDB" as Dynamo
+queue "EventBridge" as EB
+participant "Lambda stats" as Stats
+participant "Worker progress" as Progress
+participant "Worker achievements" as Achievements
+participant "Lambda reminders" as Reminders
+
+User -> PWA : log a set
+PWA -> APIGW : POST /log (JWT)
+APIGW -> Logging : invoke
+Logging -> Dynamo : write set
+Logging -> EB : workout.logged
+Logging --> APIGW : 201
+APIGW --> PWA : 201
+PWA --> User : set confirmed
+
+EB -> Stats : workout.logged
+EB -> Progress : workout.logged
+EB -> Achievements : workout.logged
+EB -> Reminders : workout.logged
+Progress -> EB : progress.level_up (optional)
+EB -> Achievements : progress.level_up
+
+@enduml
