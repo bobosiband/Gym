@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+coverage/
+.next/
+.turbo/
+.pnpm-store/
+pnpm-lock.yaml
+docs/uml/**/*.svg
+target/
+.venv/
