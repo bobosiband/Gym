@@ -4,31 +4,37 @@ title Gym catalogue: GET /exercises/:slug paths
 actor Client
 participant "CatalogueWorker" as Worker
 participant "Router" as Router
+participant "Cors" as Cors
 participant "ExerciseHandlers" as Handlers
 participant "SlugValidator" as Slug
 participant "D1ExerciseRepository" as Repo
+participant "JsonResponder" as Json
 participant "ApiErrors" as Errors
 database "D1" as DB
 
 == Happy path ==
-Client -> Worker : GET /exercises/bench-press
+Client -> Worker : GET /exercises/bench-press-192
 Worker -> Router : route(request)
-Router -> Handlers : handleDetail("bench-press")
-Handlers -> Slug : isValid("bench-press")
+Router -> Handlers : handleDetail("bench-press-192")
+Handlers -> Slug : isValid("bench-press-192")
 Slug --> Handlers : true
-Handlers -> Repo : getExerciseBySlug("bench-press")
+Handlers -> Repo : getExerciseBySlug("bench-press-192")
 Repo -> DB : SELECT ... WHERE slug = ? LIMIT 1
-DB --> Repo : row
+DB --> Repo : row (with licence, author, sourceUrl)
 Repo --> Handlers : Exercise
-Handlers --> Router : Response(200, ExerciseDetailResponse)
+Handlers -> Json : respondCached(200, body, 300)
+Json --> Handlers : Response (cache-control: public, max-age=300)
+Handlers --> Router : Response
+Router -> Cors : withCorsHeaders(response, request, origins)
+Cors --> Router : Response (+ CORS headers if origin allowed)
 Router --> Worker : Response
 Worker --> Client : 200 application/json
 
 == Not found ==
-Client -> Worker : GET /exercises/does-not-exist
+Client -> Worker : GET /exercises/does-not-exist-999
 Worker -> Router : route(request)
-Router -> Handlers : handleDetail("does-not-exist")
-Handlers -> Repo : getExerciseBySlug("does-not-exist")
+Router -> Handlers : handleDetail("does-not-exist-999")
+Handlers -> Repo : getExerciseBySlug("does-not-exist-999")
 Repo -> DB : SELECT ... WHERE slug = ? LIMIT 1
 DB --> Repo : null
 Repo --> Handlers : null
@@ -36,7 +42,7 @@ Handlers -> Errors : notFound(...)
 Errors --> Handlers : Response(404, ApiError NOT_FOUND)
 Handlers --> Router : Response
 Router --> Worker : Response
-Worker --> Client : 404 application/json
+Worker --> Client : 404 application/json\n(no cache-control)
 
 == Bad slug ==
 Client -> Worker : GET /exercises/Bench_Press

@@ -1,19 +1,29 @@
 name = "gym-catalogue"
 main = "src/index.ts"
-compatibility_date = "2025-01-01"
+compatibility_date = "2025-10-15"
+compatibility_flags = ["nodejs_compat"]
 
-# D1 binding is intentionally left as a commented placeholder.
+[observability]
+enabled = true
+
+[vars]
+# Default local allow list. Override per environment at deploy time with:
+#   wrangler deploy --var ALLOWED_ORIGINS:"https://example.com,https://example.org"
+# Comma-separated, no spaces required.
+ALLOWED_ORIGINS = "http://localhost:5173"
+
+# D1 binding commented until the owner creates the database.
 #
-# No Cloudflare account has been provisioned for this project yet (zero
-# cost rule: nothing is deployed until the owner creates the account and
-# configures billing alerts). When ready to deploy:
-#
-#   1. Run `wrangler d1 create gym-catalogue` and copy the returned id.
-#   2. Uncomment the block below and paste the id into `database_id`.
-#   3. Run `wrangler d1 migrations apply gym-catalogue` to apply schema.
+# To wire it up:
+#   1. `wrangler login`
+#   2. `wrangler d1 create gym-catalogue`
+#   3. Paste the returned database_id below in place of
+#      REPLACE_WITH_ACTUAL_D1_DATABASE_ID.
+#   4. Uncomment the whole block.
+#   5. Apply migrations: `pnpm --filter @gym/catalogue db:migrate:remote`
 #
 # [[d1_databases]]
 # binding = "DB"
 # database_name = "gym-catalogue"
-# database_id = "REPLACE_WITH_ACTUAL_ID"
+# database_id = "REPLACE_WITH_ACTUAL_D1_DATABASE_ID"
 # migrations_dir = "migrations"

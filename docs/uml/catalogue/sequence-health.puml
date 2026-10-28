@@ -1,0 +1,27 @@
+@startuml catalogue-health
+title Gym catalogue: GET /health
+
+actor Client
+participant "CatalogueWorker" as Worker
+participant "Router" as Router
+participant "HealthHandler" as Health
+participant "JsonResponder" as Json
+database "D1" as DB
+
+Client -> Worker : GET /health
+Worker -> Router : route(request)
+Router -> Health : handle()
+note right of Health
+  No D1 call. Platform health
+  checks never depend on the
+  DB being up.
+end note
+Health -> Json : respond(200, {status: "ok"})
+Json --> Health : Response
+Health --> Router : Response
+Router --> Worker : Response
+Worker --> Client : 200 application/json\n{status: "ok"}
+
+Router -X DB : (never called)
+
+@enduml

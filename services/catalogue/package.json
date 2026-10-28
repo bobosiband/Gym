@@ -6,14 +6,26 @@
   "description": "Exercise catalogue service: Cloudflare Worker over D1, serving read-only exercise data.",
   "main": "./src/index.ts",
   "scripts": {
-    "lint": "eslint src --max-warnings 0",
+    "lint": "eslint src scripts --max-warnings 0",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply gym-catalogue --local",
+    "db:migrate:remote": "wrangler d1 migrations apply gym-catalogue --remote",
+    "db:seed:local": "wrangler d1 execute gym-catalogue --local --file=seeds/wger.sql",
+    "db:seed:remote": "wrangler d1 execute gym-catalogue --remote --file=seeds/wger.sql",
+    "import:wger": "tsx scripts/importWger.ts",
+    "smoke": "tsx scripts/smoke.ts"
   },
   "dependencies": {
     "@gym/contracts": "workspace:*"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250710.0"
+    "@cloudflare/vitest-pool-workers": "^0.5.40",
+    "@cloudflare/workers-types": "^4.20250710.0",
+    "@types/node": "^20.19.0",
+    "tsx": "^4.19.0",
+    "wrangler": "^3.90.0"
   }
 }

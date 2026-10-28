@@ -1,0 +1,34 @@
+@startuml catalogue-cors-preflight
+title Gym catalogue: OPTIONS preflight
+
+actor Browser
+participant "CatalogueWorker" as Worker
+participant "Router" as Router
+participant "Cors" as Cors
+
+== Allow-listed Origin ==
+Browser -> Worker : OPTIONS /exercises\nOrigin: http://localhost:5173\nAccess-Control-Request-Method: GET
+Worker -> Router : route(request)
+Router -> Cors : preflightResponse(request, origins)
+note right of Cors
+  Origin is on the allow list
+  parsed from ALLOWED_ORIGINS.
+end note
+Cors --> Router : 204 No Content\naccess-control-allow-origin: http://localhost:5173\naccess-control-allow-methods: GET, OPTIONS\naccess-control-allow-headers: content-type\naccess-control-max-age: 600\nvary: Origin
+Router --> Worker : Response
+Worker --> Browser : 204
+
+== Disallowed Origin ==
+Browser -> Worker : OPTIONS /exercises\nOrigin: https://attacker.example
+Worker -> Router : route(request)
+Router -> Cors : preflightResponse(request, origins)
+note right of Cors
+  Origin not on allow list.
+  No CORS headers returned;
+  the browser blocks the real request.
+end note
+Cors --> Router : 204 No Content\n(no CORS headers)
+Router --> Worker : Response
+Worker --> Browser : 204 (browser blocks follow-up)
+
+@enduml

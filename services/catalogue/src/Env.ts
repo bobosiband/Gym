@@ -6,4 +6,5 @@
  */
 export interface Env {
   readonly DB: D1Database;
+  readonly ALLOWED_ORIGINS?: string;
 }

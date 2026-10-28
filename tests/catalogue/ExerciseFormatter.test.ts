@@ -11,9 +11,12 @@ describe('ExerciseFormatter.fromRow', () => {
     equipment: '["barbell","bench"]',
     instructions: 'Lie on bench, press bar upward.',
     createdAt: '2025-01-15T10:00:00Z',
+    licence: 'CC-BY-SA 4',
+    author: 'Roger Reyes',
+    sourceUrl: 'https://wger.de/en/exercise/192/view/',
   };
 
-  it('parses JSON arrays into string arrays', () => {
+  it('parses JSON arrays into string arrays and passes attribution through', () => {
     const exercise = ExerciseFormatter.fromRow(baseRow);
     expect(exercise.id).toBe('ex-1');
     expect(exercise.slug).toBe('bench-press');
@@ -22,6 +25,9 @@ describe('ExerciseFormatter.fromRow', () => {
     expect(exercise.equipment).toEqual(['barbell', 'bench']);
     expect(exercise.instructions).toBe('Lie on bench, press bar upward.');
     expect(exercise.createdAt).toBe('2025-01-15T10:00:00Z');
+    expect(exercise.licence).toBe('CC-BY-SA 4');
+    expect(exercise.author).toBe('Roger Reyes');
+    expect(exercise.sourceUrl).toBe('https://wger.de/en/exercise/192/view/');
   });
 
   it('returns empty arrays for empty JSON arrays', () => {

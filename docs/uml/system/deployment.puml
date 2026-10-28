@@ -55,11 +55,11 @@ WCat --> D1
 WProg --> D1
 WAch --> D1
 
-LLog --> EB
-EB --> LStats
+LLog --> EB : workout.logged
+EB --> LStats : workout.logged
 EB --> LPlan : workout.logged
-EB --> LRem
-EB --> WProg
-EB --> WAch
+EB --> LRem : workout.logged
+EB --> WProg : workout.logged
+EB --> WAch : workout.logged
 
 @enduml

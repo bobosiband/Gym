@@ -1,5 +1,5 @@
 @startuml catalogue-class
-title Gym catalogue: core classes (Stage 2)
+title Gym catalogue: core classes (Stage 2, deployable)
 
 skinparam shadowing false
 
@@ -10,12 +10,15 @@ package "services/catalogue/src" {
 
   class Router {
     - handlers: ExerciseHandlers
+    - allowedOrigins: readonly string[]
     + <<constructor>>(env: Env)
     + route(request: Request): Promise<Response>
+    - dispatch(request: Request, method: string): Promise<Response>
   }
 
   class JsonResponder {
     + {static} respond(status: number, body: unknown, headers?: HeadersInit): Response
+    + {static} respondCached(status: number, body: unknown, maxAgeSeconds: number, headers?: HeadersInit): Response
   }
 
   class ApiErrors {
@@ -25,7 +28,20 @@ package "services/catalogue/src" {
     + {static} internalServerError(message: string): Response
   }
 
-  interface Env
+  class Cors {
+    + {static} parseAllowedOrigins(raw: string | undefined): readonly string[]
+    + {static} preflightResponse(request: Request, allowedOrigins: readonly string[]): Response
+    + {static} withCorsHeaders(response: Response, request: Request, allowedOrigins: readonly string[]): Response
+  }
+
+  class HealthHandler {
+    + {static} handle(): Response
+  }
+
+  interface Env {
+    + DB: D1Database
+    + ALLOWED_ORIGINS?: string
+  }
 
   package "services/catalogue/src/exercises" {
     interface ExerciseRepository {
@@ -66,14 +82,39 @@ package "services/catalogue/src" {
     class ValidationError
 
     interface ListParams
-    interface ExerciseRow
+    interface ExerciseRow {
+      + id, slug, name: string
+      + muscles, equipment, instructions, createdAt: string
+      + licence, author, sourceUrl: string
+    }
+  }
+}
+
+package "services/catalogue/scripts" {
+  class WgerImporter {
+    - config: WgerImporterConfig
+    + run(): Promise<WgerImportSummary>
+  }
+
+  class WgerExerciseAdapter {
+    + {static} adapt(raw: WgerExercise, now: string): AdaptResult
+  }
+
+  class SmokeTest {
+    - baseUrl: string
+    + run(): Promise<SmokeTestResult>
   }
 }
 
 package "@gym/contracts/api/catalogue" {
-  interface Exercise
+  interface Exercise {
+    + id, slug, name, instructions, createdAt: string
+    + muscles, equipment: readonly string[]
+    + licence, author, sourceUrl: string
+  }
   interface ExerciseListResponse
   interface ExerciseDetailResponse
+  interface HealthResponse
   interface ApiError
 }
 
@@ -81,6 +122,8 @@ CatalogueWorker --> Router
 CatalogueWorker --> ApiErrors
 Router --> ExerciseHandlers
 Router --> D1ExerciseRepository
+Router --> HealthHandler
+Router --> Cors
 Router --> ApiErrors
 Router --> Env
 D1ExerciseRepository ..|> ExerciseRepository
@@ -91,12 +134,17 @@ ExerciseHandlers --> SlugValidator
 ExerciseHandlers --> ApiErrors
 ExerciseHandlers --> JsonResponder
 ExerciseHandlers --> ValidationError
-ListParamsParser --> ValidationError
+HealthHandler --> JsonResponder
 ApiErrors --> JsonResponder
+ListParamsParser --> ValidationError
+
+WgerImporter --> WgerExerciseAdapter
 
 ExerciseRepository ..> Exercise : returns
-ExerciseHandlers ..> ExerciseListResponse : returns
-ExerciseHandlers ..> ExerciseDetailResponse : returns
+ExerciseHandlers ..> ExerciseListResponse : returns (cached)
+ExerciseHandlers ..> ExerciseDetailResponse : returns (cached)
+HealthHandler ..> HealthResponse : returns
 ApiErrors ..> ApiError : returns
+WgerExerciseAdapter ..> Exercise : builds
 
 @enduml

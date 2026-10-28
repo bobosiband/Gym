@@ -2,9 +2,14 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "types": ["@cloudflare/workers-types"],
+    "types": ["@cloudflare/workers-types", "@cloudflare/vitest-pool-workers", "node"],
     "noEmit": true
   },
-  "include": ["src/**/*.ts", "../../tests/catalogue/**/*.ts"],
+  "include": [
+    "src/**/*.ts",
+    "scripts/**/*.ts",
+    "../../tests/catalogue/**/*.ts",
+    "../../tests/catalogue/**/*.d.ts"
+  ],
   "exclude": ["dist", "node_modules"]
 }
