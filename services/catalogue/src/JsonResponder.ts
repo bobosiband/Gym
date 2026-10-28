@@ -26,4 +26,30 @@ export class JsonResponder {
       },
     });
   }
+
+  /**
+   * Build a JSON response with a public Cache-Control header.
+   *
+   * Catalogue payloads are read-only reference data, so a modest shared
+   * cache keeps the request volume well inside the Worker and D1 free
+   * tiers while still allowing seed refreshes to propagate within a few
+   * minutes.
+   *
+   * @param status - HTTP status code.
+   * @param body - Any JSON-serialisable value.
+   * @param maxAgeSeconds - the cache lifetime served to clients and
+   *   intermediate caches.
+   * @param headers - Optional additional headers merged into the response.
+   */
+  public static respondCached(
+    status: number,
+    body: unknown,
+    maxAgeSeconds: number,
+    headers?: HeadersInit
+  ): Response {
+    const cacheHeaders: Record<string, string> = {
+      'cache-control': `public, max-age=${maxAgeSeconds}`,
+    };
+    return JsonResponder.respond(status, body, { ...cacheHeaders, ...headers });
+  }
 }

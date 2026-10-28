@@ -8,6 +8,15 @@ import { SlugValidator } from './SlugValidator.js';
 import { ValidationError } from './ValidationError.js';
 
 /**
+ * Shared Cache-Control max-age for 200 responses from this handler.
+ *
+ * Five minutes is a conservative tradeoff: it keeps request volume well
+ * inside the Worker and D1 free tiers while still letting a fresh seed
+ * propagate within a few minutes of deployment.
+ */
+const CACHE_MAX_AGE_SECONDS = 300;
+
+/**
  * HTTP handlers for the `/exercises` resource.
  *
  * Depends on `ExerciseRepository` via constructor injection; no handler
@@ -18,7 +27,8 @@ export class ExerciseHandlers {
 
   /**
    * Handle `GET /exercises`. Supports `muscle`, `equipment`, `limit`,
-   * `offset` query parameters. Returns `ExerciseListResponse` on success.
+   * `offset` query parameters. Returns `ExerciseListResponse` on success
+   * with `cache-control: public, max-age=300`.
    */
   public async handleList(request: Request): Promise<Response> {
     const url = new URL(request.url);
@@ -36,13 +46,14 @@ export class ExerciseHandlers {
       this.repo.countExercises(params),
     ]);
     const body: CatalogueApi.ExerciseListResponse = { exercises, total };
-    return JsonResponder.respond(200, body);
+    return JsonResponder.respondCached(200, body, CACHE_MAX_AGE_SECONDS);
   }
 
   /**
-   * Handle `GET /exercises/:slug`. Returns `ExerciseDetailResponse` on
-   * success, `ApiError` with `BAD_REQUEST` for an invalid slug, or
-   * `ApiError` with `NOT_FOUND` when no row matches.
+   * Handle `GET /exercises/:slug`. Returns `ExerciseDetailResponse` with
+   * `cache-control: public, max-age=300` on success, `ApiError` with
+   * `BAD_REQUEST` for an invalid slug, or `ApiError` with `NOT_FOUND`
+   * when no row matches. Error responses are not cached.
    */
   public async handleDetail(slug: string): Promise<Response> {
     if (!SlugValidator.isValid(slug)) {
@@ -53,6 +64,6 @@ export class ExerciseHandlers {
       return ApiErrors.notFound(`exercise not found: ${slug}`);
     }
     const body: CatalogueApi.ExerciseDetailResponse = { exercise };
-    return JsonResponder.respond(200, body);
+    return JsonResponder.respondCached(200, body, CACHE_MAX_AGE_SECONDS);
   }
 }
