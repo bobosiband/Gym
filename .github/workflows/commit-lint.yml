@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Validate commit messages
+      - name: Validate commit messages and authors
         shell: bash
         env:
           BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
@@ -23,6 +23,7 @@ jobs:
         run: |
           set -e
           CONVENTIONAL='^(feat|fix|chore|docs|test|refactor|perf|style|build|ci|revert)(\([a-z0-9/_-]+\))?!?: .+$'
+          BOT_OR_AI='(\[bot\]|copilot|anthropic|claude|openai|gpt-)'
           failed=0
 
           if [ -z "$BASE_SHA" ] || [ "$BASE_SHA" = "0000000000000000000000000000000000000000" ]; then
@@ -39,6 +40,7 @@ jobs:
           for sha in $commits; do
             msg=$(git log -1 --format=%B "$sha")
             subject=$(printf '%s' "$msg" | head -n1)
+            author=$(git log -1 --format='%an <%ae>' "$sha")
 
             if ! printf '%s' "$subject" | grep -Eq "$CONVENTIONAL"; then
               echo "::error::commit $sha: subject does not match Conventional Commits"
@@ -51,10 +53,18 @@ jobs:
               failed=1
             fi
 
-            if printf '%s' "$msg" | grep -Eiq 'co-authored-by:[[:space:]]*(claude|anthropic|gpt|openai|copilot)'; then
-              echo "::error::commit $sha: AI attribution trailer is forbidden"
+            if printf '%s' "$author" | grep -Eiq "$BOT_OR_AI"; then
+              echo "::error::commit $sha: author appears to be a bot or AI: $author"
               failed=1
             fi
+
+            while IFS= read -r line; do
+              if printf '%s' "$line" | grep -Eiq "$BOT_OR_AI"; then
+                echo "::error::commit $sha: Co-authored-by trailer attributes a bot or AI"
+                echo "    trailer: $line"
+                failed=1
+              fi
+            done < <(printf '%s' "$msg" | grep -i '^co-authored-by:' || true)
 
             if printf '%s' "$msg" | grep -Eiq '(generated|written|produced) with[[:space:]]+(\[?claude|\[?anthropic|\[?copilot)'; then
               echo "::error::commit $sha: AI attribution line is forbidden"
