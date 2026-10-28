@@ -1,0 +1,66 @@
+@startuml system-overview
+title Gym: system overview (Stage 1 target architecture)
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+
+package "User device" {
+  [React PWA] as PWA
+  [Push-up counter] as PushupCounter
+  [AI coach (WebLLM)] as Coach
+}
+
+package "Vercel (free tier)" {
+  [Static hosting] as Hosting
+}
+
+package "AWS (free tier)" {
+  [Cognito] as Cognito
+  [API Gateway] as APIGW
+  [Lambda: logging] as LambdaLogging
+  [Lambda: stats] as LambdaStats
+  [Lambda: planner] as LambdaPlanner
+  [Lambda: reminders] as LambdaReminders
+  database "DynamoDB" as DynamoDB
+  queue "EventBridge" as EventBridge
+}
+
+package "Cloudflare (free tier)" {
+  [Worker: catalogue] as WCatalogue
+  [Worker: progress] as WProgress
+  [Worker: achievements] as WAchievements
+  database "D1" as D1
+  storage "R2 (media)" as R2
+}
+
+PWA --> Hosting : loads
+PWA --> Cognito : auth
+PWA --> APIGW : REST (JWT)
+PWA --> WCatalogue : REST (JWT)
+PWA --> R2 : images, GIFs
+PushupCounter --> APIGW : final count only
+Coach --> WCatalogue : grounded facts
+Coach --> LambdaPlanner : plan context
+
+APIGW --> LambdaLogging
+APIGW --> LambdaStats
+APIGW --> LambdaPlanner
+APIGW --> LambdaReminders
+
+LambdaLogging --> DynamoDB
+LambdaStats --> DynamoDB
+LambdaPlanner --> DynamoDB
+LambdaReminders --> DynamoDB
+WCatalogue --> D1
+WProgress --> D1
+WAchievements --> D1
+
+LambdaLogging --> EventBridge : workout.logged
+EventBridge --> LambdaStats
+EventBridge --> WProgress
+EventBridge --> WAchievements
+EventBridge --> LambdaReminders
+WProgress --> EventBridge : progress.level_up
+EventBridge --> WAchievements
+
+@enduml

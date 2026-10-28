@@ -1,0 +1,64 @@
+@startuml system-deployment
+title Gym: deployment (Stage 1 target)
+
+skinparam shadowing false
+
+node "User device (browser)" as Device {
+  component "React PWA" as PWA
+  component "MediaPipe Pose" as Pose
+  component "WebLLM runtime" as WebLLM
+}
+
+cloud "Vercel\n(free tier)" {
+  artifact "Static assets" as Static
+}
+
+cloud "AWS\n(free tier)" {
+  component "Cognito" as Cognito
+  component "API Gateway" as APIGW
+  node "Lambda" {
+    component "logging" as LLog
+    component "stats" as LStats
+    component "planner" as LPlan
+    component "reminders" as LRem
+  }
+  database "DynamoDB" as Dynamo
+  queue "EventBridge" as EB
+}
+
+cloud "Cloudflare\n(free tier)" {
+  node "Workers" {
+    component "catalogue" as WCat
+    component "progress" as WProg
+    component "achievements" as WAch
+  }
+  database "D1" as D1
+  storage "R2" as R2
+}
+
+Device --> Static
+Device --> Cognito
+Device --> APIGW
+Device --> WCat
+Device --> R2
+
+APIGW --> LLog
+APIGW --> LStats
+APIGW --> LPlan
+APIGW --> LRem
+
+LLog --> Dynamo
+LStats --> Dynamo
+LPlan --> Dynamo
+LRem --> Dynamo
+WCat --> D1
+WProg --> D1
+WAch --> D1
+
+LLog --> EB
+EB --> LStats
+EB --> LRem
+EB --> WProg
+EB --> WAch
+
+@enduml
