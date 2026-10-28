@@ -1,0 +1,19 @@
+name = "gym-catalogue"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# D1 binding is intentionally left as a commented placeholder.
+#
+# No Cloudflare account has been provisioned for this project yet (zero
+# cost rule: nothing is deployed until the owner creates the account and
+# configures billing alerts). When ready to deploy:
+#
+#   1. Run `wrangler d1 create gym-catalogue` and copy the returned id.
+#   2. Uncomment the block below and paste the id into `database_id`.
+#   3. Run `wrangler d1 migrations apply gym-catalogue` to apply schema.
+#
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "gym-catalogue"
+# database_id = "REPLACE_WITH_ACTUAL_ID"
+# migrations_dir = "migrations"

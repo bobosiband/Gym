@@ -8,6 +8,7 @@ participant "Lambda logging" as Logging
 database "DynamoDB" as Dynamo
 queue "EventBridge" as EB
 participant "Lambda stats" as Stats
+participant "Lambda planner" as Planner
 participant "Worker progress" as Progress
 participant "Worker achievements" as Achievements
 participant "Lambda reminders" as Reminders
@@ -22,6 +23,7 @@ APIGW --> PWA : 201
 PWA --> User : set confirmed
 
 EB -> Stats : workout.logged
+EB -> Planner : workout.logged
 EB -> Progress : workout.logged
 EB -> Achievements : workout.logged
 EB -> Reminders : workout.logged
