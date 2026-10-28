@@ -13,4 +13,7 @@ export interface ExerciseRow {
   readonly equipment: string;
   readonly instructions: string;
   readonly createdAt: string;
+  readonly licence: string;
+  readonly author: string;
+  readonly sourceUrl: string;
 }

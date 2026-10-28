@@ -57,6 +57,22 @@ Pure parsing and validation logic has unit tests in `tests/catalogue/`:
 
 ## Seed data
 
-**No data is seeded.** `docs/SOURCES.md` lists candidate datasets (Free Exercise DB, ExerciseDB, wger) but every row is `TODO (owner to confirm)`. Seeding is blocked on owner approval of a licence; no exercise rows should land in the migration or be loaded at runtime until that approval is recorded in `docs/SOURCES.md`.
+The catalogue is seeded from the wger public API. The owner approved wger's content licences (CC-BY-SA 3.0 / 4.0, CC-BY 4.0, CC0, ODbL per entry) on 2026-10-29. See `docs/SOURCES.md` for the authoritative record.
+
+Generate the seed locally with:
+
+```
+pnpm --filter @gym/catalogue import:wger
+```
+
+That runs `scripts/importWger.ts`, which:
+
+1. Paginates `GET https://wger.de/api/v2/exerciseinfo/?language=2` with a polite 500 ms delay between pages (configurable via `WGER_DELAY_MS`).
+2. Converts each entry with `WgerExerciseAdapter`, skipping entries without an English name or without a licence. Skip counts are printed.
+3. Writes `services/catalogue/seeds/wger.sql` as `INSERT OR REPLACE` statements, which Wrangler applies with `wrangler d1 execute --file`.
+
+If the generated `wger.sql` is 5 MB or larger, add `services/catalogue/seeds/wger.sql` to `.gitignore` and leave only the generation command documented. If it is under 5 MB, commit it.
+
+Every row carries `licence`, `author`, and `sourceUrl` so the API response can keep attribution with the data.
 
 See `docs/architecture.md` for context and `docs/uml/catalogue/` for diagrams.

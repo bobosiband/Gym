@@ -14,7 +14,8 @@ export class ExerciseFormatter {
 
   /**
    * Convert a DB row into an API-shaped `Exercise`, parsing JSON-encoded
-   * array columns into real string arrays.
+   * array columns into real string arrays. Attribution fields (licence,
+   * author, sourceUrl) are passed through unchanged.
    *
    * @throws Error when a JSON column is not a valid array of strings.
    */
@@ -27,6 +28,9 @@ export class ExerciseFormatter {
       equipment: ExerciseFormatter.parseStringArray(row.equipment),
       instructions: row.instructions,
       createdAt: row.createdAt,
+      licence: row.licence,
+      author: row.author,
+      sourceUrl: row.sourceUrl,
     };
   }
 

@@ -14,6 +14,9 @@ interface FilterParts {
   readonly binds: readonly string[];
 }
 
+const SELECT_COLUMNS =
+  'id, slug, name, muscles, equipment, instructions, createdAt, licence, author, sourceUrl';
+
 /**
  * Cloudflare D1-backed `ExerciseRepository`.
  *
@@ -27,7 +30,7 @@ export class D1ExerciseRepository implements ExerciseRepository {
   public async listExercises(params: ListParams): Promise<readonly CatalogueApi.Exercise[]> {
     const { clauses, binds } = this.buildFilter(params);
     const whereClause = clauses.length > 0 ? `WHERE ${clauses.join(' AND ')}` : '';
-    const sql = `SELECT id, slug, name, muscles, equipment, instructions, createdAt
+    const sql = `SELECT ${SELECT_COLUMNS}
                  FROM exercises
                  ${whereClause}
                  ORDER BY name ASC
@@ -48,7 +51,7 @@ export class D1ExerciseRepository implements ExerciseRepository {
   }
 
   public async getExerciseBySlug(slug: string): Promise<CatalogueApi.Exercise | null> {
-    const sql = `SELECT id, slug, name, muscles, equipment, instructions, createdAt
+    const sql = `SELECT ${SELECT_COLUMNS}
                  FROM exercises
                  WHERE slug = ?
                  LIMIT 1`;
