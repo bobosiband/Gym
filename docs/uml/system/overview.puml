@@ -57,6 +57,7 @@ WAchievements --> D1
 
 LambdaLogging --> EventBridge : workout.logged
 EventBridge --> LambdaStats
+EventBridge --> LambdaPlanner : workout.logged
 EventBridge --> WProgress
 EventBridge --> WAchievements
 EventBridge --> LambdaReminders

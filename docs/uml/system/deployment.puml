@@ -57,6 +57,7 @@ WAch --> D1
 
 LLog --> EB
 EB --> LStats
+EB --> LPlan : workout.logged
 EB --> LRem
 EB --> WProg
 EB --> WAch

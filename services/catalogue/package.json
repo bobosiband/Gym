@@ -1,0 +1,19 @@
+{
+  "name": "@gym/catalogue",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Exercise catalogue service: Cloudflare Worker over D1, serving read-only exercise data.",
+  "main": "./src/index.ts",
+  "scripts": {
+    "lint": "eslint src --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@gym/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250710.0"
+  }
+}
