@@ -1,0 +1,102 @@
+@startuml catalogue-class
+title Gym catalogue: core classes (Stage 2)
+
+skinparam shadowing false
+
+package "services/catalogue/src" {
+  class CatalogueWorker {
+    + fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response>
+  }
+
+  class Router {
+    - handlers: ExerciseHandlers
+    + <<constructor>>(env: Env)
+    + route(request: Request): Promise<Response>
+  }
+
+  class JsonResponder {
+    + {static} respond(status: number, body: unknown, headers?: HeadersInit): Response
+  }
+
+  class ApiErrors {
+    + {static} badRequest(message: string): Response
+    + {static} notFound(message: string): Response
+    + {static} methodNotAllowed(): Response
+    + {static} internalServerError(message: string): Response
+  }
+
+  interface Env
+
+  package "services/catalogue/src/exercises" {
+    interface ExerciseRepository {
+      + listExercises(params: ListParams): Promise<Exercise[]>
+      + countExercises(params: ListParams): Promise<number>
+      + getExerciseBySlug(slug: string): Promise<Exercise | null>
+    }
+
+    class D1ExerciseRepository {
+      - db: D1Database
+      + listExercises(params: ListParams): Promise<Exercise[]>
+      + countExercises(params: ListParams): Promise<number>
+      + getExerciseBySlug(slug: string): Promise<Exercise | null>
+      - buildFilter(params: ListParams): FilterParts
+    }
+
+    class ExerciseHandlers {
+      - repo: ExerciseRepository
+      + <<constructor>>(repo: ExerciseRepository)
+      + handleList(request: Request): Promise<Response>
+      + handleDetail(slug: string): Promise<Response>
+    }
+
+    class ListParamsParser {
+      + {static} DEFAULT_LIMIT: 50
+      + {static} MAX_LIMIT: 100
+      + {static} parse(url: URL): ListParams
+    }
+
+    class SlugValidator {
+      + {static} isValid(slug: string): boolean
+    }
+
+    class ExerciseFormatter {
+      + {static} fromRow(row: ExerciseRow): Exercise
+    }
+
+    class ValidationError
+
+    interface ListParams
+    interface ExerciseRow
+  }
+}
+
+package "@gym/contracts/api/catalogue" {
+  interface Exercise
+  interface ExerciseListResponse
+  interface ExerciseDetailResponse
+  interface ApiError
+}
+
+CatalogueWorker --> Router
+CatalogueWorker --> ApiErrors
+Router --> ExerciseHandlers
+Router --> D1ExerciseRepository
+Router --> ApiErrors
+Router --> Env
+D1ExerciseRepository ..|> ExerciseRepository
+D1ExerciseRepository --> ExerciseFormatter
+ExerciseHandlers --> ExerciseRepository
+ExerciseHandlers --> ListParamsParser
+ExerciseHandlers --> SlugValidator
+ExerciseHandlers --> ApiErrors
+ExerciseHandlers --> JsonResponder
+ExerciseHandlers --> ValidationError
+ListParamsParser --> ValidationError
+ApiErrors --> JsonResponder
+
+ExerciseRepository ..> Exercise : returns
+ExerciseHandlers ..> ExerciseListResponse : returns
+ExerciseHandlers ..> ExerciseDetailResponse : returns
+ApiErrors ..> ApiError : returns
+
+@enduml
