@@ -14,7 +14,7 @@ All responses are JSON. Error bodies follow the `ApiError` shape in `@gym/contra
 
 ### GET /exercises
 
-List exercises, newest first. Optional filters.
+List exercises, ordered by name ascending. Optional filters.
 
 - `muscle` (string): return only exercises whose `muscles` array contains this value.
 - `equipment` (string): return only exercises whose `equipment` array contains this value.
