@@ -1,0 +1,27 @@
+@startuml catalogue-get-exercises
+title Gym catalogue: GET /exercises happy path
+
+actor Client
+participant "Worker entry" as Entry
+participant "Router" as Router
+participant "ExerciseHandlers" as Handlers
+participant "D1ExerciseRepository" as Repo
+database "D1" as DB
+
+Client -> Entry : GET /exercises?muscle=chest
+Entry -> Router : route(request, env)
+Router -> Handlers : handleListExercises(request, repo)
+Handlers -> Handlers : parseListParams(url)
+Handlers -> Repo : listExercises(params)
+Repo -> DB : SELECT ... WHERE muscles LIKE ? ORDER BY name LIMIT ? OFFSET ?
+DB --> Repo : rows
+Repo --> Handlers : Exercise[]
+Handlers -> Repo : countExercises(params)
+Repo -> DB : SELECT COUNT(*) WHERE muscles LIKE ?
+DB --> Repo : total
+Repo --> Handlers : total
+Handlers --> Router : Response(200, ExerciseListResponse)
+Router --> Entry : Response
+Entry --> Client : 200 application/json
+
+@enduml

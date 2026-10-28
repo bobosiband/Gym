@@ -34,6 +34,12 @@ Reserve the following names so later contributors do not use them for unrelated 
 
 Each will be added here with a full definition when its emitting service is built.
 
+## Services that do not emit or consume events
+
+Not every service is an event producer or consumer. Listed for completeness so later contributors do not add rows above for them by mistake:
+
+- `services/catalogue` (built in Stage 2). Read-only HTTP service over Cloudflare D1. Does not publish or consume events.
+
 ## Rules for emitting services
 
 - Events are facts, not commands. Name them in past tense: `workout.logged`, not `log.workout`.

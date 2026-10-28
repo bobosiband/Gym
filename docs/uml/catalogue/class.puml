@@ -1,0 +1,59 @@
+@startuml catalogue-class
+title Gym catalogue: core classes (Stage 2)
+
+skinparam shadowing false
+
+package "services/catalogue/src" {
+  interface ExerciseRepository {
+    + listExercises(params: ListParams): Promise<Exercise[]>
+    + countExercises(params: ListParams): Promise<number>
+    + getExerciseBySlug(slug: string): Promise<Exercise | null>
+  }
+
+  class D1ExerciseRepository {
+    - db: D1Database
+    + listExercises(params: ListParams): Promise<Exercise[]>
+    + countExercises(params: ListParams): Promise<number>
+    + getExerciseBySlug(slug: string): Promise<Exercise | null>
+  }
+
+  class ExerciseHandlers <<module>> {
+    + handleListExercises(request, repo): Promise<Response>
+    + handleGetExerciseBySlug(slug, repo): Promise<Response>
+  }
+
+  class Parse <<module>> {
+    + parseListParams(url: URL): ListParams
+    + isValidSlug(slug: string): boolean
+    + formatExerciseFromRow(row: ExerciseRow): Exercise
+  }
+
+  class Router <<module>> {
+    + route(request: Request, env: Env): Promise<Response>
+  }
+
+  class WorkerEntry <<module>> {
+    + fetch(request, env, ctx): Promise<Response>
+  }
+}
+
+package "@gym/contracts/api/catalogue" {
+  interface Exercise
+  interface ExerciseListResponse
+  interface ExerciseDetailResponse
+  interface ApiError
+}
+
+D1ExerciseRepository ..|> ExerciseRepository
+ExerciseHandlers --> ExerciseRepository
+ExerciseHandlers --> Parse
+Router --> ExerciseHandlers
+Router --> D1ExerciseRepository
+WorkerEntry --> Router
+
+ExerciseRepository ..> Exercise : returns
+ExerciseHandlers ..> ExerciseListResponse : returns
+ExerciseHandlers ..> ExerciseDetailResponse : returns
+ExerciseHandlers ..> ApiError : returns on error
+
+@enduml

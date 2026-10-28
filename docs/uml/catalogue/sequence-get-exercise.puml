@@ -1,0 +1,45 @@
+@startuml catalogue-get-exercise
+title Gym catalogue: GET /exercises/:slug paths
+
+actor Client
+participant "Worker entry" as Entry
+participant "Router" as Router
+participant "ExerciseHandlers" as Handlers
+participant "D1ExerciseRepository" as Repo
+database "D1" as DB
+
+== Happy path ==
+Client -> Entry : GET /exercises/bench-press
+Entry -> Router : route(request, env)
+Router -> Handlers : handleGetExerciseBySlug("bench-press", repo)
+Handlers -> Handlers : isValidSlug("bench-press") -> true
+Handlers -> Repo : getExerciseBySlug("bench-press")
+Repo -> DB : SELECT ... WHERE slug = ? LIMIT 1
+DB --> Repo : row
+Repo --> Handlers : Exercise
+Handlers --> Router : Response(200, ExerciseDetailResponse)
+Router --> Entry : Response
+Entry --> Client : 200 application/json
+
+== Not found ==
+Client -> Entry : GET /exercises/does-not-exist
+Entry -> Router : route(request, env)
+Router -> Handlers : handleGetExerciseBySlug("does-not-exist", repo)
+Handlers -> Repo : getExerciseBySlug("does-not-exist")
+Repo -> DB : SELECT ... WHERE slug = ? LIMIT 1
+DB --> Repo : null
+Repo --> Handlers : null
+Handlers --> Router : Response(404, ApiError NOT_FOUND)
+Router --> Entry : Response
+Entry --> Client : 404 application/json
+
+== Bad slug ==
+Client -> Entry : GET /exercises/Bench_Press
+Entry -> Router : route(request, env)
+Router -> Handlers : handleGetExerciseBySlug("Bench_Press", repo)
+Handlers -> Handlers : isValidSlug("Bench_Press") -> false
+Handlers --> Router : Response(400, ApiError BAD_REQUEST)
+Router --> Entry : Response
+Entry --> Client : 400 application/json
+
+@enduml
