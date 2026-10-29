@@ -1,0 +1,45 @@
+@startuml auth-sequence-login-refresh
+title Gym auth: login, refresh rotation, reuse detection
+
+actor User
+participant "PWA" as PWA
+participant "API Gateway" as APIGW
+participant "LoginLambda" as LoginLambda
+participant "RefreshLambda" as RefreshLambda
+participant "AuthService" as AuthService
+database "DynamoDB" as Dynamo
+
+== Login ==
+User -> PWA : submit credentials
+PWA -> APIGW : POST /auth/login
+APIGW -> LoginLambda : invoke
+LoginLambda -> AuthService : login(email, password)
+AuthService -> Dynamo : getUserByEmail
+AuthService -> AuthService : argon2id verify
+AuthService -> AuthService : check lockedUntil
+AuthService -> Dynamo : resetFailedLogins
+AuthService -> Dynamo : create session (refresh, familyId, 30d TTL)
+AuthService --> LoginLambda : { accessToken, refreshToken }
+LoginLambda --> APIGW : 200
+APIGW --> PWA : 200
+
+== Rotation ==
+PWA -> APIGW : POST /auth/refresh { refreshToken }
+APIGW -> RefreshLambda : invoke
+RefreshLambda -> AuthService : refresh(refreshToken)
+AuthService -> Dynamo : getByHashId
+AuthService -> Dynamo : markUsed(oldHash)
+AuthService -> Dynamo : create session (new refresh, same familyId)
+AuthService --> RefreshLambda : { accessToken', refreshToken' }
+RefreshLambda --> APIGW : 200
+
+== Reuse detection ==
+PWA -> APIGW : POST /auth/refresh { oldRefreshToken }
+APIGW -> RefreshLambda : invoke
+RefreshLambda -> AuthService : refresh(oldRefreshToken)
+AuthService -> Dynamo : getByHashId (usedAt != null)
+AuthService -> Dynamo : revokeFamily(familyId)
+AuthService --> RefreshLambda : AuthServiceError TOKEN_ALREADY_USED
+RefreshLambda --> APIGW : 401 UNAUTHORIZED
+
+@enduml

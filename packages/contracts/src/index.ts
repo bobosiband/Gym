@@ -9,3 +9,5 @@
  */
 
 export * as CatalogueApi from './api/catalogue.js';
+export * as AuthApi from './api/auth.js';
+export * as UserRegisteredV1Event from './events/userRegistered.v1.js';

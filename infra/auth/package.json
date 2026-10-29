@@ -1,0 +1,24 @@
+{
+  "name": "@gym/infra-auth",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AWS CDK app for services/auth. Lambdas behind HTTP API Gateway, DynamoDB tables, EventBridge integration, SSM-backed JWT and SMTP config.",
+  "scripts": {
+    "lint": "eslint bin lib --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "synth": "cdk synth --app \"npx tsx bin/auth.ts\"",
+    "diff": "cdk diff --app \"npx tsx bin/auth.ts\"",
+    "deploy": "cdk deploy --require-approval never --app \"npx tsx bin/auth.ts\""
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.158.0",
+    "constructs": "^10.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "aws-cdk": "^2.158.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.2"
+  }
+}

@@ -6,6 +6,16 @@ Every event flowing through EventBridge is listed here and versioned. The author
 
 Any change to an event schema is a **breaking change** and needs explicit owner approval before merging. Breaking changes bump the version in the event name (for example, `workout.logged.v1` to `workout.logged.v2`) and the two versions coexist until every consumer has migrated. The old version is only removed after the owner confirms.
 
+## Published events
+
+### user.registered.v1
+
+- **Emitted by.** `services/auth`
+- **Emitted when.** A new user record is successfully written to DynamoDB during sign-up. Not re-emitted when `/auth/register` is called again for an already existing account (verified or not), so consumers can treat the event as a true creation signal.
+- **Consumed by.** None in Stage 2. Reserved for later services (for example `services/progress` to seed a zero-XP record on first registration).
+- **Schema.** `packages/contracts/src/events/userRegistered.v1.ts`.
+- **Payload.** `eventId` (UUID v4, idempotency key), `userId` (same subject that appears in access tokens), `registeredAt` (ISO 8601 UTC).
+
 ## Draft events (Stage 1, not yet implemented)
 
 ### workout.logged.v1
