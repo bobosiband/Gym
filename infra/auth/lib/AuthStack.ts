@@ -9,7 +9,6 @@ import {
   type CfnStage,
   type HttpStage,
 } from 'aws-cdk-lib/aws-apigatewayv2';
-import { HttpJwtAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import {
   AttributeType,
@@ -129,6 +128,7 @@ export class AuthStack extends Stack {
     );
     const me = this.buildLambda('MeLambda', 'meLambda', commonEnvironment, serviceRoot);
     const jwks = this.buildLambda('JwksLambda', 'jwksLambda', commonEnvironment, serviceRoot);
+    const health = this.buildLambda('HealthLambda', 'healthLambda', {}, serviceRoot);
 
     const writeAccess: readonly IFunction[] = [
       register,
@@ -147,7 +147,7 @@ export class AuthStack extends Stack {
     usersTable.grantReadData(me);
     sessionsTable.grantReadData(me);
 
-    const allLambdas: readonly IFunction[] = [
+    const ssmReaders: readonly IFunction[] = [
       register,
       verify,
       resend,
@@ -159,18 +159,16 @@ export class AuthStack extends Stack {
       me,
       jwks,
     ];
-    for (const fn of allLambdas) {
+    for (const fn of ssmReaders) {
       this.grantSsmReadAccess(fn);
     }
+    // Health intentionally gets no SSM, Dynamo, or EventBridge grant;
+    // it must not depend on any backing service being reachable.
 
     eventBus.grantPutEventsTo(register);
 
     const api = this.buildHttpApi(appOrigin);
     const jwksUrl = `${api.apiEndpoint}/.well-known/jwks.json`;
-    const authorizer = new HttpJwtAuthorizer('AuthJwtAuthorizer', jwksUrl, {
-      jwtAudience: [audience],
-      identitySource: ['$request.header.Authorization'],
-    });
 
     const integration = (fn: IFunction, name: string): HttpLambdaIntegration =>
       new HttpLambdaIntegration(`${name}Integration`, fn);
@@ -219,12 +217,16 @@ export class AuthStack extends Stack {
       path: '/auth/me',
       methods: [HttpMethod.GET, HttpMethod.OPTIONS],
       integration: integration(me, 'Me'),
-      authorizer,
     });
     api.addRoutes({
       path: '/.well-known/jwks.json',
       methods: [HttpMethod.GET],
       integration: integration(jwks, 'Jwks'),
+    });
+    api.addRoutes({
+      path: '/health',
+      methods: [HttpMethod.GET],
+      integration: integration(health, 'Health'),
     });
 
     this.applyPerRouteThrottling(api.defaultStage as HttpStage);
@@ -290,20 +292,24 @@ export class AuthStack extends Stack {
     });
   }
 
+  /**
+   * Apply stage-level throttling. CloudFormation refuses to create a
+   * `Stage` whose `RouteSettings` reference routes that do not yet
+   * exist in the same template; attaching per-route overrides from
+   * the stage therefore conflicts with the single-pass create of the
+   * default stage. The stage-level `DefaultRouteSettings` of 20
+   * requests per second with a burst of 40 applies uniformly to every
+   * route, which is already restrictive enough to protect the free
+   * tier. If stricter per-route limits are needed later, add them
+   * through a separate CFN-aware construct that depends on each
+   * `AWS::ApiGatewayV2::Route` resource.
+   */
   private applyPerRouteThrottling(stage: HttpStage): void {
     const cfnStage = stage.node.defaultChild as CfnStage;
-    cfnStage.defaultRouteSettings = {
-      throttlingRateLimit: 20,
-      throttlingBurstLimit: 40,
-    };
-    const tight = { throttlingRateLimit: 2, throttlingBurstLimit: 5 };
-    cfnStage.routeSettings = {
-      'POST /auth/register': tight,
-      'POST /auth/login': tight,
-      'POST /auth/refresh': tight,
-      'POST /auth/forgot-password': tight,
-      'POST /auth/resend-verification': tight,
-    };
+    cfnStage.addPropertyOverride('DefaultRouteSettings', {
+      ThrottlingRateLimit: 20,
+      ThrottlingBurstLimit: 40,
+    });
   }
 
   private buildLambda(
@@ -322,10 +328,9 @@ export class AuthStack extends Stack {
       entry,
       handler: 'handler',
       runtime: Runtime.NODEJS_20_X,
-      architecture: Architecture.ARM_64,
+      architecture: Architecture.X86_64,
       memorySize: 512,
       timeout: Duration.seconds(10),
-      reservedConcurrentExecutions: 10,
       environment,
       logGroup,
       bundling: {
@@ -335,6 +340,8 @@ export class AuthStack extends Stack {
         sourceMap: true,
         externalModules: ['@node-rs/argon2'],
         nodeModules: ['@node-rs/argon2'],
+        banner:
+          "import{createRequire as __createRequire}from 'node:module';import{fileURLToPath as __fileURLToPath}from 'node:url';import{dirname as __dirname}from 'node:path';const require=__createRequire(import.meta.url);const __filename=__fileURLToPath(import.meta.url);const __dirnamePath=__dirname(__filename);",
       },
     };
     return new NodejsFunction(this, constructId, props);

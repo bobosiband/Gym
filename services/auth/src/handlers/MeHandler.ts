@@ -4,29 +4,50 @@ import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from '
 import { ApiErrors } from '../http/ApiErrors.js';
 import { ApiResponder } from '../http/ApiResponder.js';
 import type { AuthService } from '../service/AuthService.js';
+import type { JwtSigner } from '../tokens/JwtSigner.js';
 import { HandlerBase } from './HandlerBase.js';
 
 /**
  * Handles `GET /auth/me`.
  *
- * The route is behind the API Gateway JWT authorizer, so by the time
- * the handler runs we have a verified token. The authorizer makes
- * the decoded `sub` claim available on
- * `event.requestContext.authorizer.jwt.claims.sub`; we rely on that
- * rather than parsing the Authorization header ourselves to avoid
- * duplicating verification.
+ * Verifies the Authorization bearer JWT inline using the service's
+ * own `JwtSigner`. We do this inside the Lambda (rather than a
+ * dedicated API Gateway JWT authorizer) because API Gateway v2's
+ * built-in JWT authorizer requires the issuer to publish an OIDC
+ * discovery document at `/.well-known/openid-configuration`, which
+ * would force a two-phase deploy; the security guarantee is the
+ * same once the request body never gets to look at a user record
+ * without a valid signature. Other services will plug a JWT
+ * verifier middleware into their own request path the same way.
+ *
+ * Still rejects requests before any Dynamo read: a missing or
+ * malformed header, a bad signature, a wrong issuer or audience,
+ * or an expired token all return 401 with the generic body.
  */
 export class MeHandler {
-  public constructor(private readonly service: AuthService) {}
+  public constructor(
+    private readonly service: AuthService,
+    private readonly signer: JwtSigner,
+    private readonly issuer: string,
+    private readonly audience: string
+  ) {}
 
   public async handle(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> {
     const logger = HandlerBase.buildLogger('auth.me', event);
-    const sub = MeHandler.readSubject(event);
-    if (sub === null) {
-      logger.warn('me called without subject');
-      return ApiErrors.unauthorized('missing subject');
+    const bearer = MeHandler.readBearerToken(event);
+    if (bearer === null) {
+      logger.warn('me called without bearer token');
+      return ApiErrors.unauthorized('invalid credentials');
     }
-    const user = await this.service.getProfile(sub);
+    let subject: string;
+    try {
+      const claims = await this.signer.verify(bearer, this.issuer, this.audience);
+      subject = claims.sub;
+    } catch {
+      logger.warn('me token verify failed');
+      return ApiErrors.unauthorized('invalid credentials');
+    }
+    const user = await this.service.getProfile(subject);
     if (user === null) {
       logger.warn('me subject not found');
       return ApiErrors.unauthorized('invalid credentials');
@@ -42,16 +63,16 @@ export class MeHandler {
     return ApiResponder.respond(200, body);
   }
 
-  private static readSubject(event: APIGatewayProxyEventV2): string | null {
-    const context = event.requestContext as unknown as Record<string, unknown>;
-    const authorizer = context['authorizer'];
-    if (authorizer === undefined || authorizer === null || typeof authorizer !== 'object')
-      return null;
-    const jwtRecord = (authorizer as Record<string, unknown>)['jwt'];
-    if (jwtRecord === undefined || jwtRecord === null || typeof jwtRecord !== 'object') return null;
-    const claims = (jwtRecord as Record<string, unknown>)['claims'];
-    if (claims === undefined || claims === null || typeof claims !== 'object') return null;
-    const sub = (claims as Record<string, unknown>)['sub'];
-    return typeof sub === 'string' && sub.length > 0 ? sub : null;
+  private static readBearerToken(event: APIGatewayProxyEventV2): string | null {
+    const headers = event.headers ?? {};
+    for (const key of Object.keys(headers)) {
+      if (key.toLowerCase() === 'authorization') {
+        const value = headers[key];
+        if (typeof value !== 'string') return null;
+        const match = value.match(/^Bearer\s+(.+)$/i);
+        return match === null ? null : (match[1] ?? null);
+      }
+    }
+    return null;
   }
 }
