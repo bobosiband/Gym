@@ -27,6 +27,7 @@ out/
 .turbo/
 .cache/
 coverage/
+cdk.out/
 
 # TypeScript
 *.tsbuildinfo
