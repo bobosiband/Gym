@@ -1,0 +1,30 @@
+@startuml auth-sequence-jwks
+title Gym auth: how other services verify tokens
+
+actor User
+participant "PWA" as PWA
+participant "Other service\nAPI Gateway" as OtherAPIGW
+participant "API Gateway\nJWT Authorizer" as Authorizer
+participant "Auth API Gateway" as AuthAPIGW
+participant "JwksLambda" as JwksLambda
+
+PWA -> OtherAPIGW : request with Bearer <access JWT>
+OtherAPIGW -> Authorizer : validate token
+Authorizer -> AuthAPIGW : GET /.well-known/jwks.json\n(cached 10m)
+AuthAPIGW -> JwksLambda : invoke
+JwksLambda --> AuthAPIGW : { keys: [EC/P-256 public key] }
+AuthAPIGW --> Authorizer : JWKS doc
+Authorizer -> Authorizer : verify ES256 sig, iss, aud, exp
+Authorizer --> OtherAPIGW : allow
+OtherAPIGW -> OtherAPIGW : route to target Lambda\nwith sub claim available
+
+note right of Authorizer
+Issuer, audience, and JWKS URL are
+exported both as CDK stack outputs
+and as public SSM parameters under
+/gym/auth/public/*, so every other
+service's CDK stack reads them with
+StringParameter.valueFromLookup.
+end note
+
+@enduml

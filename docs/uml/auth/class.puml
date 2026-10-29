@@ -1,0 +1,125 @@
+@startuml auth-class
+title Gym auth: core classes (Stage 2)
+
+skinparam shadowing false
+
+package "services/auth/src" {
+  package "handlers" {
+    class RegisterHandler {
+      + handle(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2>
+    }
+    class VerifyEmailHandler
+    class ResendVerificationHandler
+    class LoginHandler
+    class RefreshHandler
+    class LogoutHandler
+    class ForgotPasswordHandler
+    class ResetPasswordHandler
+    class MeHandler
+    class JwksHandler
+    class HandlerBase <<utility>> {
+      + {static} parseBodyOrFail(event, schema): ParseResult
+      + {static} mapAuthError(err: AuthServiceError): APIGatewayProxyStructuredResultV2
+    }
+    class HandlerSchemas <<utility>>
+  }
+
+  package "service" {
+    class AuthService {
+      - deps: AuthServiceDeps
+      + register(email: string, password: string): Promise<void>
+      + verifyEmail(token: string): Promise<void>
+      + resendVerification(email: string): Promise<void>
+      + login(email: string, password: string): Promise<IssuedTokens>
+      + refresh(token: string): Promise<IssuedTokens>
+      + logout(token: string): Promise<void>
+      + forgotPassword(email: string): Promise<void>
+      + resetPassword(token: string, newPassword: string): Promise<void>
+      + getProfile(userId: string): Promise<User | null>
+    }
+    class AuthPolicy <<constants>>
+    class AuthServiceError
+    class AuthServiceFactory <<factory>>
+  }
+
+  package "users" {
+    interface UserRepository
+    class DynamoUserRepository
+  }
+
+  package "sessions" {
+    interface SessionRepository
+    class DynamoSessionRepository
+    class TokenHasher <<utility>>
+  }
+
+  package "passwords" {
+    interface PasswordHasher
+    class Argon2PasswordHasher
+    class PasswordPolicy <<utility>>
+  }
+
+  package "tokens" {
+    interface JwtSigner
+    class JoseJwtSigner
+  }
+
+  package "mail" {
+    interface Mailer
+    class NodemailerMailer
+    class EmailTemplates <<utility>>
+  }
+
+  package "events" {
+    interface EventPublisher
+    class EventBridgeEventPublisher
+  }
+
+  package "rateLimit" {
+    class EmailRateLimiter
+  }
+
+  package "http" {
+    class ApiResponder <<utility>>
+    class ApiErrors <<utility>>
+    class BodyParser <<utility>>
+    class Cors <<utility>>
+  }
+
+  package "config" {
+    interface AuthConfig
+    class SsmConfigLoader
+    class SsmParamNames <<utility>>
+  }
+}
+
+RegisterHandler --> AuthService
+VerifyEmailHandler --> AuthService
+ResendVerificationHandler --> AuthService
+LoginHandler --> AuthService
+RefreshHandler --> AuthService
+LogoutHandler --> AuthService
+ForgotPasswordHandler --> AuthService
+ResetPasswordHandler --> AuthService
+MeHandler --> AuthService
+JwksHandler --> JoseJwtSigner
+
+AuthService --> UserRepository
+AuthService --> SessionRepository
+AuthService --> PasswordHasher
+AuthService --> JwtSigner
+AuthService --> Mailer
+AuthService --> EventPublisher
+AuthService --> EmailRateLimiter
+
+DynamoUserRepository ..|> UserRepository
+DynamoSessionRepository ..|> SessionRepository
+Argon2PasswordHasher ..|> PasswordHasher
+JoseJwtSigner ..|> JwtSigner
+NodemailerMailer ..|> Mailer
+EventBridgeEventPublisher ..|> EventPublisher
+
+AuthServiceFactory ..> SsmConfigLoader
+AuthServiceFactory ..> AuthService
+
+@enduml

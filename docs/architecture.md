@@ -52,12 +52,13 @@ Every service listed below is a bounded context. Each owns its own data store an
 
 #### services/auth (Stage 2)
 
-- **Purpose.** Sign-up, login, token issuance. Every other service verifies the Cognito JWT.
-- **Proposed language.** TypeScript (pending owner approval).
-- **Infra.** AWS Cognito.
-- **Data store.** Cognito user pool.
+- **Purpose.** Sign-up, login, email verification, password reset, token issuance. Every other service verifies the auth JWT by configuring an API Gateway JWT authorizer against the auth service's JWKS endpoint.
+- **Language.** TypeScript.
+- **Infra.** AWS Lambda (not inside a VPC) behind an HTTP API Gateway, DynamoDB on-demand, AWS EventBridge, AWS Systems Manager Parameter Store.
+- **Data store.** Two DynamoDB tables: users (keyed by user id, with a `by-email` GSI and an `emailVerified` flag) and sessions (hashed refresh, verify, and reset tokens with Dynamo TTL, plus email abuse counters).
 - **Events in.** None.
-- **Events out.** None (Stage 1 scope).
+- **Events out.** `user.registered.v1`.
+- **Decision.** The project does not use AWS Cognito, SES, WAF, NAT gateways, VPCs, provisioned concurrency, or KMS customer-managed keys. The service owns its own identity records to stay inside the AWS free tier. Passwords are hashed with argon2id via `@node-rs/argon2`; access tokens are ES256 JWTs signed with `jose` using a private key stored as an SSM SecureString. Email is sent through Gmail SMTP via Nodemailer, behind a swappable `Mailer` interface. See `services/auth/README.md` for the full rationale, endpoint list, and the standard way every other service plugs into the shared JWT authorizer.
 
 #### services/catalogue (Stage 2)
 
@@ -140,7 +141,7 @@ Not built until the owner explicitly asks:
 
 ## Communication rules
 
-- The frontend calls services over HTTPS, authenticated with the Cognito JWT.
+- The frontend calls services over HTTPS, authenticated with the auth service's ES256 JWT (verified by an API Gateway JWT authorizer against the JWKS endpoint).
 - Services communicate asynchronously via EventBridge where possible. Cloudflare Workers publish to and receive from EventBridge over HTTPS.
 - Every event and API schema lives in `packages/contracts` and is versioned. Any schema change is a breaking change and requires owner approval.
 

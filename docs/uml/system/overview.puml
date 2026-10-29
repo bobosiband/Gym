@@ -1,5 +1,5 @@
 @startuml system-overview
-title Gym: system overview (Stage 1 target architecture)
+title Gym: system overview (Stage 2 target architecture)
 
 skinparam componentStyle rectangle
 skinparam shadowing false
@@ -15,8 +15,8 @@ package "Vercel (free tier)" {
 }
 
 package "AWS (free tier)" {
-  [Cognito] as Cognito
   [API Gateway] as APIGW
+  [Lambda: auth] as LambdaAuth
   [Lambda: logging] as LambdaLogging
   [Lambda: stats] as LambdaStats
   [Lambda: planner] as LambdaPlanner
@@ -34,19 +34,20 @@ package "Cloudflare (free tier)" {
 }
 
 PWA --> Hosting : loads
-PWA --> Cognito : auth
-PWA --> APIGW : REST (JWT)
+PWA --> APIGW : auth + REST (JWT)
 PWA --> WCatalogue : REST (JWT)
 PWA --> R2 : images, GIFs
 PushupCounter --> APIGW : final count only
 Coach --> WCatalogue : grounded facts
 Coach --> LambdaPlanner : plan context
 
+APIGW --> LambdaAuth
 APIGW --> LambdaLogging
 APIGW --> LambdaStats
 APIGW --> LambdaPlanner
 APIGW --> LambdaReminders
 
+LambdaAuth --> DynamoDB
 LambdaLogging --> DynamoDB
 LambdaStats --> DynamoDB
 LambdaPlanner --> DynamoDB
@@ -55,6 +56,7 @@ WCatalogue --> D1
 WProgress --> D1
 WAchievements --> D1
 
+LambdaAuth --> EventBridge : user.registered
 LambdaLogging --> EventBridge : workout.logged
 EventBridge --> LambdaStats
 EventBridge --> LambdaPlanner : workout.logged

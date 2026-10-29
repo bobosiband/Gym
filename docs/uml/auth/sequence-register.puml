@@ -1,0 +1,38 @@
+@startuml auth-sequence-register
+title Gym auth: sign-up and verification
+
+actor User
+participant "PWA" as PWA
+participant "API Gateway\n(HTTP API)" as APIGW
+participant "RegisterLambda" as RegisterLambda
+participant "AuthService" as AuthService
+database "DynamoDB\n(users, sessions)" as Dynamo
+participant "Nodemailer\n(Gmail SMTP)" as SMTP
+queue "EventBridge" as EB
+participant "VerifyEmailLambda" as VerifyLambda
+
+User -> PWA : enter email + password
+PWA -> APIGW : POST /auth/register
+APIGW -> RegisterLambda : invoke
+RegisterLambda -> AuthService : register(email, password)
+AuthService -> Dynamo : getUserByEmail
+AuthService -> AuthService : argon2id hash
+AuthService -> Dynamo : createUser (ConditionExpression)
+AuthService -> EB : user.registered.v1
+AuthService -> Dynamo : create session row (verify token, TTL 24h)
+AuthService -> SMTP : send verification email
+RegisterLambda --> APIGW : 202 pending_verification
+APIGW --> PWA : 202 pending_verification
+PWA --> User : check your email
+
+User -> PWA : clicks verification link
+PWA -> APIGW : POST /auth/verify-email { token }
+APIGW -> VerifyLambda : invoke
+VerifyLambda -> AuthService : verifyEmail(token)
+AuthService -> Dynamo : get session by hashed token
+AuthService -> Dynamo : markEmailVerified(userId)
+AuthService -> Dynamo : markUsed(tokenHashId)
+VerifyLambda --> APIGW : 200 verified
+APIGW --> PWA : 200 verified
+
+@enduml

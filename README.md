@@ -7,7 +7,7 @@ Built as a microservice monorepo on free tiers and on-device compute. Zero recur
 ## Stack at a glance
 
 - Frontend: React PWA on Vercel; MediaPipe Pose for the push-up counter; WebLLM for the on-device coach.
-- Backend: AWS Cognito (auth), AWS Lambda + DynamoDB (logging, stats, planner, reminders), Cloudflare Workers + D1 (catalogue, progress, achievements), Cloudflare R2 (media).
+- Backend: AWS Lambda + DynamoDB (auth, logging, stats, planner, reminders), Cloudflare Workers + D1 (catalogue, progress, achievements), Cloudflare R2 (media).
 - Events over AWS EventBridge; shared schemas in `packages/contracts`.
 
 ## Documentation

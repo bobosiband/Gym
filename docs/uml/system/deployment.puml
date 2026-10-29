@@ -1,5 +1,5 @@
 @startuml system-deployment
-title Gym: deployment (Stage 1 target)
+title Gym: deployment (Stage 2 target)
 
 skinparam shadowing false
 
@@ -14,9 +14,9 @@ cloud "Vercel\n(free tier)" {
 }
 
 cloud "AWS\n(free tier)" {
-  component "Cognito" as Cognito
   component "API Gateway" as APIGW
   node "Lambda" {
+    component "auth" as LAuth
     component "logging" as LLog
     component "stats" as LStats
     component "planner" as LPlan
@@ -24,6 +24,7 @@ cloud "AWS\n(free tier)" {
   }
   database "DynamoDB" as Dynamo
   queue "EventBridge" as EB
+  component "SSM Parameter Store" as SSM
 }
 
 cloud "Cloudflare\n(free tier)" {
@@ -37,24 +38,28 @@ cloud "Cloudflare\n(free tier)" {
 }
 
 Device --> Static
-Device --> Cognito
 Device --> APIGW
 Device --> WCat
 Device --> R2
 
+APIGW --> LAuth
 APIGW --> LLog
 APIGW --> LStats
 APIGW --> LPlan
 APIGW --> LRem
 
+LAuth --> Dynamo
 LLog --> Dynamo
 LStats --> Dynamo
 LPlan --> Dynamo
 LRem --> Dynamo
+LAuth --> SSM : JWT key, SMTP creds
+
 WCat --> D1
 WProg --> D1
 WAch --> D1
 
+LAuth --> EB : user.registered
 LLog --> EB : workout.logged
 EB --> LStats : workout.logged
 EB --> LPlan : workout.logged

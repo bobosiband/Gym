@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "scripts/**/*.ts",
+    "../../tests/auth/**/*.ts",
+    "../../tests/auth/**/*.d.ts"
+  ],
+  "exclude": ["dist", "node_modules"]
+}

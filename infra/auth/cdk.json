@@ -1,0 +1,8 @@
+{
+  "app": "npx tsx bin/auth.ts",
+  "context": {
+    "@aws-cdk/aws-iam:minimizePolicies": true,
+    "@aws-cdk/aws-lambda:recognizeVersionProps": true,
+    "@aws-cdk/core:newStyleStackSynthesis": true
+  }
+}
