@@ -4,19 +4,17 @@ import { describe, expect, it } from 'vitest';
 import { MeHandler } from '../../services/auth/src/handlers/MeHandler.js';
 
 import { FakeMailer } from './support/FakeMailer.js';
-import { buildAuthService } from './support/buildAuthService.js';
+import { buildAuthService, ISSUER, AUDIENCE } from './support/buildAuthService.js';
 
-function eventWithSub(sub: string | undefined): APIGatewayProxyEventV2 {
-  const authorizer: Record<string, unknown> = {};
-  if (sub !== undefined) {
-    authorizer['jwt'] = { claims: { sub } };
-  }
+function eventWithBearer(token: string | null): APIGatewayProxyEventV2 {
+  const headers: Record<string, string> = {};
+  if (token !== null) headers['authorization'] = `Bearer ${token}`;
   return {
     version: '2.0',
     routeKey: 'GET /auth/me',
     rawPath: '/auth/me',
     rawQueryString: '',
-    headers: {},
+    headers,
     requestContext: {
       accountId: '0',
       apiId: 'a',
@@ -34,23 +32,22 @@ function eventWithSub(sub: string | undefined): APIGatewayProxyEventV2 {
       stage: '$default',
       time: '',
       timeEpoch: 0,
-      authorizer: authorizer as never,
     },
     isBase64Encoded: false,
   } as APIGatewayProxyEventV2;
 }
 
 describe('MeHandler', () => {
-  it('returns the user for a valid subject claim', async () => {
+  it('returns the user for a valid bearer token', async () => {
     const h = buildAuthService();
     await h.service.register('alice@example.com', 'correct horse battery staple');
     const mail = h.mailer.lastMailFor('alice@example.com')!;
-    const token = FakeMailer.extractTokenFromBody(mail.text) as string;
-    await h.service.verifyEmail(token);
-    const user = (await h.users.getUserByEmail('alice@example.com'))!;
+    const verifyToken = FakeMailer.extractTokenFromBody(mail.text) as string;
+    await h.service.verifyEmail(verifyToken);
+    const tokens = await h.service.login('alice@example.com', 'correct horse battery staple');
 
-    const handler = new MeHandler(h.service);
-    const response = await handler.handle(eventWithSub(user.id));
+    const handler = new MeHandler(h.service, h.signer, ISSUER, AUDIENCE);
+    const response = await handler.handle(eventWithBearer(tokens.accessToken));
     expect(response.statusCode).toBe(200);
     const body = JSON.parse(response.body as string);
     expect(body.user.email).toBe('alice@example.com');
@@ -58,15 +55,34 @@ describe('MeHandler', () => {
     expect(body.user).not.toHaveProperty('passwordHash');
   });
 
-  it('returns UNAUTHORIZED when the subject claim is missing', async () => {
+  it('returns UNAUTHORIZED without an Authorization header', async () => {
     const h = buildAuthService();
-    const response = await new MeHandler(h.service).handle(eventWithSub(undefined));
+    const response = await new MeHandler(h.service, h.signer, ISSUER, AUDIENCE).handle(
+      eventWithBearer(null)
+    );
+    expect(response.statusCode).toBe(401);
+  });
+
+  it('returns UNAUTHORIZED for a malformed token', async () => {
+    const h = buildAuthService();
+    const response = await new MeHandler(h.service, h.signer, ISSUER, AUDIENCE).handle(
+      eventWithBearer('not-a-token')
+    );
     expect(response.statusCode).toBe(401);
   });
 
   it('returns UNAUTHORIZED when the subject is unknown', async () => {
     const h = buildAuthService();
-    const response = await new MeHandler(h.service).handle(eventWithSub('ghost'));
+    const forged = await h.signer.sign({
+      iss: ISSUER,
+      aud: AUDIENCE,
+      sub: 'ghost',
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(Date.now() / 1000) + 60,
+    });
+    const response = await new MeHandler(h.service, h.signer, ISSUER, AUDIENCE).handle(
+      eventWithBearer(forged)
+    );
     expect(response.statusCode).toBe(401);
   });
 });

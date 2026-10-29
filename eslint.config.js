@@ -16,6 +16,8 @@ export default [
       '**/*.min.js',
       '.pnpm-store/**',
       'docs/uml/**',
+      'cdk.out/**',
+      '**/cdk.out/**',
     ],
   },
   {

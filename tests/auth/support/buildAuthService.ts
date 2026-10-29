@@ -1,9 +1,9 @@
 import { EmailRateLimiter } from '../../../services/auth/src/rateLimit/EmailRateLimiter.js';
+import { Argon2PasswordHasher } from '../../../services/auth/src/passwords/Argon2PasswordHasher.js';
 import {
   AuthService,
   type AuthServiceDeps,
 } from '../../../services/auth/src/service/AuthService.js';
-import { Argon2PasswordHasher } from '../../../services/auth/src/passwords/Argon2PasswordHasher.js';
 import { CountingIdGenerator } from './CountingIdGenerator.js';
 import { FakeClock } from './FakeClock.js';
 import { FakeJwtSigner } from './FakeJwtSigner.js';
@@ -11,6 +11,14 @@ import { FakeMailer } from './FakeMailer.js';
 import { InMemorySessionRepository } from './InMemorySessionRepository.js';
 import { InMemoryUserRepository } from './InMemoryUserRepository.js';
 import { RecordingEventPublisher } from './RecordingEventPublisher.js';
+
+/**
+ * Shared issuer and audience strings used by both the production
+ * harness and the handler-level tests, so `MeHandler.test.ts` can
+ * mint a bearer token whose claims match what the service expects.
+ */
+export const ISSUER = 'https://auth.gym.test';
+export const AUDIENCE = 'gym-api';
 
 /**
  * Bundle of the in-memory doubles plus a wired `AuthService`. Tests
@@ -25,6 +33,7 @@ export interface TestHarness {
   readonly events: RecordingEventPublisher;
   readonly clock: FakeClock;
   readonly ids: CountingIdGenerator;
+  readonly signer: FakeJwtSigner;
 }
 
 /**
@@ -42,20 +51,30 @@ export function buildAuthService(): TestHarness {
   const clock = new FakeClock();
   const ids = new CountingIdGenerator();
   const emailLimiter = new EmailRateLimiter(sessions, clock);
+  const signer = new FakeJwtSigner();
   const deps: AuthServiceDeps = {
     users,
     sessions,
     passwordHasher: new Argon2PasswordHasher(),
-    jwtSigner: new FakeJwtSigner(),
+    jwtSigner: signer,
     mailer,
     events,
     ids,
     clock,
     emailLimiter,
-    issuer: 'https://auth.gym.test',
-    audience: 'gym-api',
+    issuer: ISSUER,
+    audience: AUDIENCE,
     verifyUrlBase: 'https://app.gym.test/verify',
     resetUrlBase: 'https://app.gym.test/reset',
   };
-  return { service: new AuthService(deps), users, sessions, mailer, events, clock, ids };
+  return {
+    service: new AuthService(deps),
+    users,
+    sessions,
+    mailer,
+    events,
+    clock,
+    ids,
+    signer,
+  };
 }
