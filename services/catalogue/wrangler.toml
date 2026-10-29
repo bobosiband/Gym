@@ -12,18 +12,8 @@ enabled = true
 # Comma-separated, no spaces required.
 ALLOWED_ORIGINS = "http://localhost:5173"
 
-# D1 binding commented until the owner creates the database.
-#
-# To wire it up:
-#   1. `wrangler login`
-#   2. `wrangler d1 create gym-catalogue`
-#   3. Paste the returned database_id below in place of
-#      REPLACE_WITH_ACTUAL_D1_DATABASE_ID.
-#   4. Uncomment the whole block.
-#   5. Apply migrations: `pnpm --filter @gym/catalogue db:migrate:remote`
-#
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "gym-catalogue"
-# database_id = "REPLACE_WITH_ACTUAL_D1_DATABASE_ID"
-# migrations_dir = "migrations"
+[[d1_databases]]
+binding = "DB"
+database_name = "gym-catalogue"
+database_id = "64660688-d5b3-47d4-b582-3989181f06a7"
+migrations_dir = "migrations"
