@@ -71,4 +71,31 @@ describe('Cors', () => {
     );
     expect(decorated.headers?.['access-control-allow-origin']).toBeUndefined();
   });
+
+  it('wildcard allow list: preflight returns * and no vary', () => {
+    const event = buildEvent('https://anything.example', 'OPTIONS');
+    const response = Cors.preflightResponse(event, ['*']);
+    expect(response.statusCode).toBe(204);
+    expect(response.headers?.['access-control-allow-origin']).toBe('*');
+    expect(response.headers?.['vary']).toBeUndefined();
+    expect(response.headers?.['access-control-allow-methods']).toContain('POST');
+    expect(response.headers?.['access-control-allow-headers']).toContain('authorization');
+  });
+
+  it('wildcard allow list: non-preflight responses get * and no vary', () => {
+    const event = buildEvent('https://anything.example');
+    const decorated = Cors.withCorsHeaders(
+      { statusCode: 200, headers: { 'content-type': 'application/json' }, body: '{}' },
+      event,
+      ['*']
+    );
+    expect(decorated.headers?.['access-control-allow-origin']).toBe('*');
+    expect(decorated.headers?.['vary']).toBeUndefined();
+  });
+
+  it('wildcard allow list: works without any Origin header', () => {
+    const event = buildEvent(undefined, 'OPTIONS');
+    const response = Cors.preflightResponse(event, ['*']);
+    expect(response.headers?.['access-control-allow-origin']).toBe('*');
+  });
 });

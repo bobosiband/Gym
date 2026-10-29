@@ -11,6 +11,18 @@
  */
 
 /**
+ * `GET /health` returns a self-contained HTML page, not a JSON body.
+ * The route is intended for human liveness checks and does not belong
+ * in the typed JSON contract: there is no response interface for it.
+ *
+ * The handler lives in `services/auth/src/handlers/HealthHandler.ts`
+ * and renders a dependency-free page with the current server time
+ * and a lightweight CSS/JS animation. It performs no DynamoDB, SSM,
+ * or SMTP reads so platform liveness checks keep working during any
+ * backing-service outage.
+ */
+
+/**
  * Standard error body for all 4xx and 5xx responses from the auth API.
  *
  * `code` is a stable machine-readable identifier for the error. `message`

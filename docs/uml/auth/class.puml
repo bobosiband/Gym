@@ -17,6 +17,9 @@ package "services/auth/src" {
     class ResetPasswordHandler
     class MeHandler
     class JwksHandler
+    class HealthHandler <<utility>> {
+      + {static} handle(): APIGatewayProxyStructuredResultV2
+    }
     class HandlerBase <<utility>> {
       + {static} parseBodyOrFail(event, schema): ParseResult
       + {static} mapAuthError(err: AuthServiceError): APIGatewayProxyStructuredResultV2

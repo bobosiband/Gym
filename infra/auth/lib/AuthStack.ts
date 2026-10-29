@@ -128,6 +128,7 @@ export class AuthStack extends Stack {
     );
     const me = this.buildLambda('MeLambda', 'meLambda', commonEnvironment, serviceRoot);
     const jwks = this.buildLambda('JwksLambda', 'jwksLambda', commonEnvironment, serviceRoot);
+    const health = this.buildLambda('HealthLambda', 'healthLambda', {}, serviceRoot);
 
     const writeAccess: readonly IFunction[] = [
       register,
@@ -146,7 +147,7 @@ export class AuthStack extends Stack {
     usersTable.grantReadData(me);
     sessionsTable.grantReadData(me);
 
-    const allLambdas: readonly IFunction[] = [
+    const ssmReaders: readonly IFunction[] = [
       register,
       verify,
       resend,
@@ -158,9 +159,11 @@ export class AuthStack extends Stack {
       me,
       jwks,
     ];
-    for (const fn of allLambdas) {
+    for (const fn of ssmReaders) {
       this.grantSsmReadAccess(fn);
     }
+    // Health intentionally gets no SSM, Dynamo, or EventBridge grant;
+    // it must not depend on any backing service being reachable.
 
     eventBus.grantPutEventsTo(register);
 
@@ -219,6 +222,11 @@ export class AuthStack extends Stack {
       path: '/.well-known/jwks.json',
       methods: [HttpMethod.GET],
       integration: integration(jwks, 'Jwks'),
+    });
+    api.addRoutes({
+      path: '/health',
+      methods: [HttpMethod.GET],
+      integration: integration(health, 'Health'),
     });
 
     this.applyPerRouteThrottling(api.defaultStage as HttpStage);
