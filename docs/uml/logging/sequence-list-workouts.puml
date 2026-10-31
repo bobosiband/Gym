@@ -1,0 +1,24 @@
+@startuml logging-sequence-list-workouts
+title Gym logging: GET /workouts
+
+actor User
+participant "PWA" as Client
+participant "API Gateway\n(HTTP API)" as APIGW
+participant "ListWorkoutsLambda" as ListLambda
+participant "JwksJwtVerifier" as Verifier
+participant "LoggingService" as Service
+database "DynamoDB\n(workouts)" as Dynamo
+
+User -> Client : open workout history
+Client -> APIGW : GET /workouts?from=&to=&limit=&cursor=\nAuthorization: Bearer <jwt>
+APIGW -> ListLambda : invoke
+ListLambda -> Verifier : verify(jwt)
+Verifier --> ListLambda : AccessTokenClaims { sub }
+ListLambda -> Service : listWorkouts(sub, options)
+Service -> Dynamo : Query\npk = USER#sub AND sk BETWEEN ...\nScanIndexForward=false
+Dynamo --> Service : items, LastEvaluatedKey
+Service --> ListLambda : { workouts, cursor? }
+ListLambda --> APIGW : 200 { workouts, cursor? }
+APIGW --> Client : 200 { workouts, cursor? }
+
+@enduml
