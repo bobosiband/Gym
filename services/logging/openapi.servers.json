@@ -1,0 +1,4 @@
+{
+  "productionUrl": "https://logging.gym.ap-southeast-2.amazonaws.com",
+  "description": "ap-southeast-2 production (placeholder; update after first deploy with the ApiUrl output from GymLoggingStack)"
+}
