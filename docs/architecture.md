@@ -135,6 +135,10 @@ Every service listed below is a bounded context. Each owns its own data store an
 - **Events in.** `workout.logged`.
 - **Events out.** None.
 
+## Planned features
+
+The living backlog of planned features, which service owns each one, and the events they will consume or emit lives in `docs/roadmap.md`. Add rows there before any new feature work starts.
+
 ## Reserved for later
 
 Not built until the owner explicitly asks:
