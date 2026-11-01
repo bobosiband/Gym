@@ -1,0 +1,41 @@
+@startuml
+title Gym progress: consume workout.logged.v1
+
+participant "services/logging" as Logging
+participant "EventBridge\n(gym-events)" as EB
+participant "WorkoutLoggedLambda" as Lambda
+participant "WorkoutLoggedConsumer" as Consumer
+participant "ProgressService" as Service
+database "DynamoDB\n(StateTable, ProcessedEventTable)" as Dynamo
+participant "EventBridge\n(outbound)" as Out
+
+Logging -> EB: workout.logged.v1 (detail = WorkoutLoggedV1)
+EB -> Lambda: invoke
+Lambda -> Consumer: handle(event)
+Consumer -> Service: handleWorkoutLogged(detail)
+Service -> Dynamo: tryClaim(eventId)
+alt eventId already seen
+  Dynamo --> Service: false
+  Service --> Consumer: return (dedup)
+else first time
+  Dynamo --> Service: true
+  Service -> Dynamo: getState(userId)
+  Dynamo --> Service: ProgressStateRecord | null
+  Service -> Dynamo: getDailySummary(userId, localDate)
+  Dynamo --> Service: DailySummaryRecord | null
+  Service -> Service: fold event into summary
+  Service -> Service: compute streak transition
+  alt streak frozen
+    Service -> Out: streak.frozen.v1
+  else streak broken
+    Service -> Out: streak.broken.v1
+  end
+  Service -> Service: credit XP + daily target bonus
+  alt level crossed
+    Service -> Out: progress.level_up.v1
+  end
+  Service -> Dynamo: putDailySummary(summary)
+  Service -> Dynamo: putState(nextState)
+end
+
+@enduml

@@ -1,0 +1,23 @@
+@startuml
+title Gym progress: streak transitions
+
+[*] --> NoStreak
+
+NoStreak --> ActiveStreak : counted day\n(started: streak = 1)
+
+ActiveStreak --> ActiveStreak : same day\n(held)
+ActiveStreak --> ActiveStreak : next day\n(advanced: streak + 1)
+ActiveStreak --> ActiveStreak : gap <= freezes\n(frozen: freezes -= gap, streak + gap)
+ActiveStreak --> ActiveStreak : gap > freezes\n(broken: streak = 1)
+
+note right of ActiveStreak
+  "Counted day" means either the daily
+  push-up target was hit or at least
+  one resistance set was logged.
+
+  A frozen transition emits
+  streak.frozen.v1; a broken
+  transition emits streak.broken.v1.
+end note
+
+@enduml

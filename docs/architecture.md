@@ -100,12 +100,13 @@ Every service listed below is a bounded context. Each owns its own data store an
 
 #### services/progress (Stage 3)
 
-- **Purpose.** XP, levels, streaks (with streak freezes).
-- **Proposed language.** TypeScript (pending owner approval).
-- **Infra.** Cloudflare Worker.
-- **Data store.** Cloudflare D1.
-- **Events in.** `workout.logged`.
-- **Events out.** `progress.level_up`.
+- **Purpose.** XP, levels, Duolingo-style streaks (with streak freezes), and a daily push-up target.
+- **Language.** TypeScript.
+- **Infra.** AWS Lambda behind an HTTP API Gateway, DynamoDB on demand, shared `gym-events` EventBridge bus, SSM Parameter Store (standard tier). No Cognito, SES, WAF, NAT, VPC, provisioned concurrency, or KMS customer-managed keys.
+- **Data store.** Two DynamoDB tables: a state table (`pk = USER#<userId>`, `sk = STATE` or `DAY#<localDate>`) and an idempotency table (TTL-swept, keyed by `(eventId)`).
+- **Events in.** `workout.logged.v1`.
+- **Events out.** `progress.level_up.v1`, `streak.broken.v1`, `streak.frozen.v1`.
+- **Decision.** The 2026-11-02 overnight rebuild moved this service from Cloudflare Workers + D1 to AWS Lambda + DynamoDB. Bridging the shared `gym-events` EventBridge bus to a Worker would mean a paid API Gateway hop or a Lambda relay, neither of which fits the zero-cost rule. See `services/progress/README.md` for the full rationale, streak and freeze rules, and the local-date resolution via `Intl.DateTimeFormat`.
 
 #### services/achievements (Stage 3)
 
