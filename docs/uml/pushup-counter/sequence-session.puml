@@ -1,0 +1,38 @@
+@startuml
+title Gym pushup-counter: a complete session
+
+actor User
+participant "PushupCounter\n(widget)" as Widget
+participant "PushupRepCounter" as RepCounter
+participant "MediaPipePoseSource" as Pose
+participant "Camera (device)" as Camera
+participant "apps/web\nLogWorkoutScreen" as Host
+participant "LoggingApiClient" as Logging
+participant "services/logging" as Server
+
+User -> Widget: click Start
+Widget -> Pose: start(listener)
+Pose -> Camera: getUserMedia(video)
+Camera --> Pose: MediaStream
+loop every animation frame
+  Camera --> Pose: VideoFrame
+  Pose -> Widget: listener(landmarks)
+  Widget -> RepCounter: processFrame(landmarks)
+  RepCounter --> Widget: count updated
+end
+User -> Widget: click Finish
+Widget -> Pose: stop()
+Pose -> Camera: release tracks
+Widget --> Host: onComplete(count)
+Host -> Logging: logWorkout({ kind: "pushup", reps: count }, token, idempotencyKey)
+Logging -> Server: POST /workouts (Idempotency-Key)
+Server --> Logging: 201 { workout }
+Logging --> Host: LogWorkoutResponse
+
+note over Widget, Camera
+  Camera frames and MediaPipe inference
+  stay on the device. Only the final count
+  is sent over the network.
+end note
+
+@enduml
