@@ -1,0 +1,184 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f8fafc;
+  --fg: #0f172a;
+  --accent: #0f172a;
+  --error: #b91c1c;
+  --card: #ffffff;
+  --muted: #475569;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f172a;
+    --fg: #f8fafc;
+    --card: #1e293b;
+    --accent: #f8fafc;
+    --muted: #94a3b8;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.app-shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--card);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.brand {
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--fg);
+  font-size: 1.1rem;
+}
+
+.top-nav {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.top-nav a,
+.top-nav button {
+  color: var(--fg);
+  text-decoration: none;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.top-nav a:hover,
+.top-nav button:hover {
+  border-color: var(--muted);
+}
+
+.app-main {
+  flex: 1;
+  padding: 1.25rem;
+  max-width: 42rem;
+  width: 100%;
+  margin: 0 auto;
+}
+
+h1 {
+  margin-top: 0;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  color: var(--muted);
+}
+
+input,
+select {
+  padding: 0.5rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background: var(--card);
+  color: var(--fg);
+  font: inherit;
+}
+
+button[type='submit'],
+.home-actions button {
+  padding: 0.6rem 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--bg);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.home-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.form-error {
+  color: var(--error);
+  background: rgba(185, 28, 28, 0.08);
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  margin: 0.25rem 0;
+}
+
+.workout-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.workout-list li {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto auto auto;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--card);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: 0.95rem;
+}
+
+.workout-list time {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.workout-list .exercise-id {
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.85rem;
+  color: var(--muted);
+}

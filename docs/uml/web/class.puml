@@ -1,0 +1,130 @@
+@startuml
+title Gym web: core classes (Stage 2)
+
+skinparam shadowing false
+
+package "apps/web/src" {
+  package "config" {
+    class Env {
+      + authApiUrl: string
+      + loggingApiUrl: string
+      + catalogueApiUrl: string
+      + {static} load(source): Env
+    }
+  }
+
+  package "api" {
+    class FetchHttpClient {
+      + request<T>(options): Promise<T>
+    }
+    class HttpError
+    class AuthApiClient {
+      + register(email, password): Promise<RegisterResponse>
+      + login(email, password): Promise<AuthTokens>
+      + refresh(refreshToken): Promise<AuthTokens>
+      + logout(refreshToken): Promise<void>
+      + verifyEmail(token): Promise<VerifyEmailResponse>
+      + resendVerification(email): Promise<ResendVerificationResponse>
+      + forgotPassword(email): Promise<ForgotPasswordResponse>
+      + resetPassword(token, newPassword): Promise<ResetPasswordResponse>
+      + me(accessToken): Promise<MeResponse>
+    }
+    class LoggingApiClient {
+      + logWorkout(options): Promise<LogWorkoutResponse>
+      + listWorkouts(options): Promise<ListWorkoutsResponse>
+    }
+    class CatalogueApiClient {
+      + listExercises(options): Promise<ExerciseListResponse>
+    }
+  }
+
+  package "auth" {
+    interface KeyValueStorage
+    class TokenStore {
+      + save(tokens): void
+      + readAccessToken(): string | null
+      + readRefreshToken(): string | null
+      + isAccessTokenExpiring(): boolean
+      + hasSession(): boolean
+      + clear(): void
+    }
+    class SessionManager {
+      + login(tokens): void
+      + hasSession(): boolean
+      + getFreshAccessToken(): Promise<string>
+      + refreshNow(): Promise<string>
+      + logout(): Promise<void>
+      + onLogout(listener): () => void
+    }
+    class AuthorizedRequest {
+      + run<T>(run): Promise<T>
+    }
+  }
+
+  package "routing" {
+    class RouteResolver {
+      + resolve(pathname, search): Route
+    }
+    class Navigator {
+      + navigate(path): void
+      + replace(path): void
+    }
+  }
+
+  package "app" {
+    class App <<React>>
+    class AppContext <<React context>>
+  }
+
+  package "screens" {
+    class LoginScreen <<React>>
+    class RegisterScreen <<React>>
+    class VerifyEmailNoticeScreen <<React>>
+    class VerifyEmailConfirmScreen <<React>>
+    class ForgotPasswordScreen <<React>>
+    class ResetPasswordScreen <<React>>
+    class HomeScreen <<React>>
+    class LogWorkoutScreen <<React>>
+    class HistoryScreen <<React>>
+    class NotFoundScreen <<React>>
+  }
+
+  package "util" {
+    class IdempotencyKey {
+      + next(): string
+    }
+  }
+
+  package "sw" {
+    class ServiceWorker <<worker>>
+  }
+}
+
+AuthApiClient --> FetchHttpClient
+LoggingApiClient --> FetchHttpClient
+CatalogueApiClient --> FetchHttpClient
+
+TokenStore ..> KeyValueStorage
+SessionManager --> TokenStore
+SessionManager --> AuthApiClient
+AuthorizedRequest --> SessionManager
+
+App --> RouteResolver
+App --> Navigator
+App ..> AppContext
+
+LoginScreen ..> AuthApiClient
+LoginScreen ..> SessionManager
+RegisterScreen ..> AuthApiClient
+VerifyEmailNoticeScreen ..> AuthApiClient
+VerifyEmailConfirmScreen ..> AuthApiClient
+ForgotPasswordScreen ..> AuthApiClient
+ResetPasswordScreen ..> AuthApiClient
+LogWorkoutScreen ..> AuthorizedRequest
+LogWorkoutScreen ..> LoggingApiClient
+LogWorkoutScreen ..> CatalogueApiClient
+LogWorkoutScreen ..> IdempotencyKey
+HistoryScreen ..> AuthorizedRequest
+HistoryScreen ..> LoggingApiClient
+
+@enduml
