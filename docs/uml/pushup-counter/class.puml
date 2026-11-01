@@ -1,0 +1,56 @@
+@startuml
+title Gym pushup-counter: core classes (Stage 2)
+
+skinparam shadowing false
+
+package "apps/pushup-counter/src" {
+  class ElbowAngle <<utility>> {
+    + {static} betweenShoulderElbowWrist(shoulder, elbow, wrist): number
+  }
+
+  interface PoseLandmark
+  enum PoseLandmarkIndex {
+    LeftShoulder
+    RightShoulder
+    LeftElbow
+    RightElbow
+    LeftWrist
+    RightWrist
+  }
+
+  interface PoseSource {
+    + start(listener): Promise<void>
+    + stop(): Promise<void>
+  }
+
+  class PushupRepCounter {
+    - options: PushupRepCounterOptions
+    - phase: PushupPhase
+    - count: number
+    + processFrame(landmarks): boolean
+    + getCount(): number
+    + getPhase(): PushupPhase
+    + getLastElbowAngle(): number | null
+    + reset(): void
+  }
+
+  class MediaPipePoseSource {
+    + start(listener): Promise<void>
+    + stop(): Promise<void>
+  }
+
+  class PushupCounter <<React>> {
+    + onComplete(count): void
+    + createSource?(video): PoseSource
+  }
+}
+
+PushupRepCounter ..> ElbowAngle
+PushupRepCounter ..> PoseLandmarkIndex
+PushupRepCounter ..> PoseLandmark
+MediaPipePoseSource ..|> PoseSource
+PushupCounter --> PoseSource
+PushupCounter --> PushupRepCounter
+PushupCounter ..> MediaPipePoseSource
+
+@enduml
