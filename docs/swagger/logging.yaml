@@ -524,8 +524,6 @@ paths:
         - bearerAuth: []
       summary: Fetch one workout
 servers:
-  - description: >-
-      ap-southeast-2 production (placeholder; update after first deploy with the ApiUrl output from
-      GymLoggingStack)
-    url: https://logging.gym.ap-southeast-2.amazonaws.com
+  - description: ap-southeast-2 production (GymLoggingStack.ApiUrl)
+    url: https://4ckn6orn55.execute-api.ap-southeast-2.amazonaws.com
 webhooks: {}
