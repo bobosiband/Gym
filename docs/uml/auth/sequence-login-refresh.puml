@@ -1,4 +1,4 @@
-@startuml auth-sequence-login-refresh
+@startuml
 title Gym auth: login, refresh rotation, reuse detection
 
 actor User

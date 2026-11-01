@@ -1,4 +1,4 @@
-@startuml auth-class
+@startuml
 title Gym auth: core classes (Stage 2)
 
 skinparam shadowing false

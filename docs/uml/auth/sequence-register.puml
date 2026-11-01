@@ -1,4 +1,4 @@
-@startuml auth-sequence-register
+@startuml
 title Gym auth: sign-up and verification
 
 actor User
