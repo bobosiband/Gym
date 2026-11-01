@@ -1,4 +1,4 @@
-@startuml logging-sequence-get-workout
+@startuml
 title Gym logging: GET /workouts/{workoutId}
 
 actor User
