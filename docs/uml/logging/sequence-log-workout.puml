@@ -1,4 +1,4 @@
-@startuml logging-sequence-log-workout
+@startuml
 title Gym logging: POST /workouts (with Idempotency-Key)
 
 actor User

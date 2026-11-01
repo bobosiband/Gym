@@ -1,4 +1,4 @@
-@startuml logging-class
+@startuml
 title Gym logging: core classes (Stage 2)
 
 skinparam shadowing false

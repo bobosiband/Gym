@@ -1,4 +1,4 @@
-@startuml auth-sequence-jwks
+@startuml
 title Gym auth: how other services verify tokens
 
 actor User
