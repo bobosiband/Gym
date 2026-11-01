@@ -1,0 +1,24 @@
+@startuml
+title Gym media: CORS preflight for a cross-origin fetch
+
+actor User
+participant "Browser" as Client
+participant "MediaWorker" as Worker
+participant "Router" as Router
+participant "Cors" as Cors
+
+User -> Client: load exercise page
+Client -> Worker: OPTIONS /media/pushups/01.gif\norigin: https://app.example
+Worker -> Router: route(request)
+Router -> Cors: preflightResponse(request, allowedOrigins)
+Cors --> Router: 204 { access-control-allow-origin, allow-methods, max-age }
+Router --> Worker: 204
+Worker --> Client: 204 (preflight pass)
+Client -> Worker: GET /media/pushups/01.gif
+note right of Client
+  Follow-up request completes
+  per the sequence in
+  sequence-get-media.puml
+end note
+
+@enduml

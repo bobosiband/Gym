@@ -1,0 +1,27 @@
+name = "gym-media"
+main = "src/index.ts"
+compatibility_date = "2025-10-15"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+[vars]
+# Default local allow list. Override per environment at deploy time with:
+#   wrangler deploy --var ALLOWED_ORIGINS:"https://example.com,https://example.org"
+# Comma-separated, no spaces required.
+ALLOWED_ORIGINS = "http://localhost:5173"
+
+# Media is immutable once uploaded; a long browser cache is safe. Keep
+# this as a var (not hardcoded) so the owner can tune it per
+# environment without a code change.
+MAX_AGE_SECONDS = "604800"
+
+[[r2_buckets]]
+binding = "MEDIA"
+# Bucket is created once, out of band, with
+#   wrangler r2 bucket create gym-media
+# This file does not create it: the IaC rule in docs/architecture.md
+# says deploys stay inside the Cloudflare free tier and no bucket is
+# provisioned via code without owner approval.
+bucket_name = "gym-media"

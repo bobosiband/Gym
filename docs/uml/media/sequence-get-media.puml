@@ -1,0 +1,27 @@
+@startuml
+title Gym media: GET /media/<key>
+
+actor User
+participant "Browser" as Client
+participant "Cloudflare Worker\n(MediaWorker)" as Worker
+participant "Router" as Router
+participant "MediaHandler" as Handler
+participant "MediaKey" as Key
+participant "ContentType" as CT
+database "R2 bucket\n(gym-media)" as R2
+
+User -> Client: open exercise page
+Client -> Worker: GET /media/pushups/01.gif
+Worker -> Router: route(request)
+Router -> Handler: handleGet(request)
+Handler -> Key: extract(pathname)
+Key --> Handler: "pushups/01.gif"
+Handler -> CT: forKey("pushups/01.gif")
+CT --> Handler: "image/gif"
+Handler -> R2: get("pushups/01.gif")
+R2 --> Handler: { body, size, etag, uploadedAt }
+Handler --> Router: 200 { content-type, cache-control, etag } + body stream
+Router --> Worker: Response (with CORS headers added if origin allowed)
+Worker --> Client: 200 image/gif, max-age=604800, immutable
+
+@enduml

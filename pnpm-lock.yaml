@@ -289,6 +289,22 @@ importers:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@20.19.43)(jsdom@25.0.1)
 
+  services/media:
+    dependencies:
+      '@gym/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+    devDependencies:
+      '@cloudflare/vitest-pool-workers':
+        specifier: ^0.5.40
+        version: 0.5.41(@cloudflare/workers-types@4.20260702.1)(@vitest/runner@2.1.9)(@vitest/snapshot@2.1.9)(vitest@2.1.9(@types/node@20.19.43)(jsdom@25.0.1))
+      '@cloudflare/workers-types':
+        specifier: ^4.20250710.0
+        version: 4.20260702.1
+      wrangler:
+        specifier: ^3.90.0
+        version: 3.114.17(@cloudflare/workers-types@4.20260702.1)
+
 packages:
 
   '@apidevtools/swagger-methods@3.0.2':

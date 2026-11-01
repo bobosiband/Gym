@@ -1,0 +1,53 @@
+@startuml
+title Gym media: core classes (Stage 2)
+
+skinparam shadowing false
+
+package "services/media/src" {
+  class MediaWorker {
+    + fetch(request, env, ctx): Promise<Response>
+  }
+  class Router {
+    + route(request): Promise<Response>
+  }
+  class HealthHandler <<utility>> {
+    + {static} handle(): Response
+  }
+  class Cors <<utility>>
+  class ApiErrors <<utility>>
+  class JsonResponder <<utility>>
+
+  package "media" {
+    class MediaHandler {
+      + handleGet(request): Promise<Response>
+      + handleHead(request): Promise<Response>
+    }
+    interface MediaRepository {
+      + get(key, range?): Promise<MediaObject | null>
+      + head(key): Promise<Metadata | null>
+    }
+    class R2MediaRepository
+    class MediaKey <<utility>> {
+      + {static} isValid(key): boolean
+      + {static} extract(pathname): string | null
+    }
+    class ContentType <<utility>> {
+      + {static} forKey(key): string | null
+    }
+  }
+}
+
+MediaWorker --> Router
+Router --> HealthHandler
+Router --> MediaHandler
+Router --> Cors
+Router --> R2MediaRepository
+MediaHandler --> MediaRepository
+MediaHandler --> MediaKey
+MediaHandler --> ContentType
+MediaHandler --> ApiErrors
+R2MediaRepository ..|> MediaRepository
+ApiErrors --> JsonResponder
+HealthHandler --> JsonResponder
+
+@enduml
