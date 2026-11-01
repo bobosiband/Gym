@@ -1,0 +1,22 @@
+{
+  "name": "@gym/media",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Media service: Cloudflare Worker over R2, serving exercise GIFs and images with cache headers.",
+  "main": "./src/index.ts",
+  "scripts": {
+    "lint": "eslint src --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "dev": "wrangler dev"
+  },
+  "dependencies": {
+    "@gym/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.5.40",
+    "@cloudflare/workers-types": "^4.20250710.0",
+    "wrangler": "^3.90.0"
+  }
+}
