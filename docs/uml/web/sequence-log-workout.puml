@@ -1,0 +1,40 @@
+@startuml
+title Gym web: log a workout with refresh on 401
+
+actor User
+participant "LogWorkoutScreen" as Screen
+participant "AuthorizedRequest" as Authorized
+participant "SessionManager" as Session
+participant "TokenStore" as Store
+participant "LoggingApiClient" as Logging
+participant "AuthApiClient" as Auth
+participant "services/logging" as LogServer
+participant "services/auth" as AuthServer
+
+User -> Screen: submit workout form
+Screen -> Authorized: run(callback)
+Authorized -> Session: getFreshAccessToken()
+Session -> Store: readAccessToken()
+Store --> Session: accessToken
+Session --> Authorized: accessToken
+Authorized -> Logging: logWorkout(request, accessToken, idempotencyKey)
+Logging -> LogServer: POST /workouts
+LogServer --> Logging: 401 UNAUTHORIZED
+Logging --> Authorized: throws HttpError
+Authorized -> Session: refreshNow()
+Session -> Store: readRefreshToken()
+Store --> Session: refreshToken
+Session -> Auth: refresh(refreshToken)
+Auth -> AuthServer: POST /auth/refresh
+AuthServer --> Auth: 200 { accessToken, refreshToken }
+Auth --> Session: new tokens
+Session -> Store: save(tokens)
+Session --> Authorized: newAccessToken
+Authorized -> Logging: logWorkout(request, newAccessToken, idempotencyKey)
+Logging -> LogServer: POST /workouts (same key)
+LogServer --> Logging: 201 { workout }
+Logging --> Authorized: LogWorkoutResponse
+Authorized --> Screen: LogWorkoutResponse
+Screen --> User: navigate("/history")
+
+@enduml

@@ -1,0 +1,27 @@
+@startuml
+title Gym web: register and verify email
+
+actor User
+participant "RegisterScreen" as Register
+participant "AuthApiClient" as Auth
+participant "services/auth" as AuthServer
+participant "Email" as Mail
+participant "VerifyEmailConfirmScreen" as Verify
+
+User -> Register: submit(email, password)
+Register -> Auth: register(email, password)
+Auth -> AuthServer: POST /auth/register
+AuthServer --> Auth: 200 { status: "pending_verification" }
+Auth --> Register: RegisterResponse
+Register --> User: navigate("/verify-email?email=...")
+
+AuthServer -> Mail: send verification link
+Mail -> User: email with /verify-email?token=...
+User -> Verify: open link
+Verify -> Auth: verifyEmail(token)
+Auth -> AuthServer: POST /auth/verify-email
+AuthServer --> Auth: 200 { status: "verified" }
+Auth --> Verify: VerifyEmailResponse
+Verify --> User: success + link to /login
+
+@enduml

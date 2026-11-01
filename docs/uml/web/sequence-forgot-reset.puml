@@ -1,0 +1,27 @@
+@startuml
+title Gym web: forgot password and reset
+
+actor User
+participant "ForgotPasswordScreen" as Forgot
+participant "AuthApiClient" as Auth
+participant "services/auth" as AuthServer
+participant "Email" as Mail
+participant "ResetPasswordScreen" as Reset
+
+User -> Forgot: submit(email)
+Forgot -> Auth: forgotPassword(email)
+Auth -> AuthServer: POST /auth/forgot-password
+AuthServer --> Auth: 200 { status: "pending_reset" }
+Auth --> Forgot: ok
+Forgot --> User: generic success message
+
+AuthServer -> Mail: send reset link
+Mail -> User: email with /reset-password?token=...
+User -> Reset: open link, submit new password
+Reset -> Auth: resetPassword(token, newPassword)
+Auth -> AuthServer: POST /auth/reset-password
+AuthServer --> Auth: 200 { status: "password_reset" }
+Auth --> Reset: ok
+Reset --> User: navigate("/login")
+
+@enduml

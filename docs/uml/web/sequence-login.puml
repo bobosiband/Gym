@@ -1,0 +1,24 @@
+@startuml
+title Gym web: login flow
+
+actor User
+participant "LoginScreen" as Screen
+participant "AuthApiClient" as Auth
+participant "SessionManager" as Session
+participant "TokenStore" as Store
+participant "Navigator" as Nav
+participant "services/auth" as Server
+
+User -> Screen: submit(email, password)
+Screen -> Auth: login(email, password)
+Auth -> Server: POST /auth/login
+Server --> Auth: 200 { accessToken, refreshToken, expiresInSeconds }
+Auth --> Screen: AuthTokens
+Screen -> Session: login(tokens)
+Session -> Store: save(tokens)
+Store --> Session: ok
+Session --> Screen: void
+Screen -> Nav: replace("/")
+Nav --> User: Home screen
+
+@enduml
