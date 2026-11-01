@@ -1,0 +1,29 @@
+@startuml logging-sequence-log-workout
+title Gym logging: POST /workouts (with Idempotency-Key)
+
+actor User
+participant "PWA / pushup-counter" as Client
+participant "API Gateway\n(HTTP API)" as APIGW
+participant "LogWorkoutLambda" as LogLambda
+participant "JwksJwtVerifier" as Verifier
+participant "LoggingService" as Service
+database "DynamoDB\n(workouts, idempotency)" as Dynamo
+queue "EventBridge\n(gym-events)" as EB
+
+User -> Client : finish set / push-up round
+Client -> APIGW : POST /workouts\nAuthorization: Bearer <jwt>\nIdempotency-Key: <key>
+APIGW -> LogLambda : invoke
+LogLambda -> Verifier : verify(jwt)
+Verifier --> LogLambda : AccessTokenClaims { sub }
+LogLambda -> Service : logWorkout({ userId, body, idempotencyKey })
+Service -> Dynamo : PutItem idempotency\n(attribute_not_exists)
+Dynamo --> Service : created
+Service -> Dynamo : PutItem workout\n(attribute_not_exists pk,sk)
+Dynamo --> Service : ok
+Service -> EB : PutEvents\n{ detailType: workout.logged.v1, detail }
+EB --> Service : ok
+Service -> Dynamo : PutItem idempotency\n(status: completed)
+LogLambda --> APIGW : 201 { workout }
+APIGW --> Client : 201 { workout }
+
+@enduml

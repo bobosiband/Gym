@@ -10,4 +10,6 @@
 
 export * as CatalogueApi from './api/catalogue.js';
 export * as AuthApi from './api/auth.js';
+export * as LoggingApi from './api/logging.js';
 export * as UserRegisteredV1Event from './events/userRegistered.v1.js';
+export * as WorkoutLoggedV1Event from './events/workoutLogged.v1.js';

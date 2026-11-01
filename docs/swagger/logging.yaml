@@ -1,0 +1,529 @@
+components:
+  parameters: {}
+  schemas:
+    GetWorkoutResponse:
+      additionalProperties: false
+      properties:
+        workout:
+          additionalProperties: false
+          properties:
+            durationSeconds:
+              maximum: 86400
+              minimum: 1
+              type: integer
+            exerciseId:
+              maxLength: 128
+              minLength: 1
+              type: string
+            kind:
+              enum:
+                - set
+                - pushup
+              type: string
+            loggedAt:
+              format: date-time
+              type: string
+            reps:
+              maximum: 10000
+              minimum: 1
+              type: integer
+            userId:
+              maxLength: 128
+              minLength: 1
+              type: string
+            weightKg:
+              maximum: 10000
+              minimum: 0
+              type: number
+            workoutId:
+              format: uuid
+              type: string
+          required:
+            - workoutId
+            - userId
+            - loggedAt
+            - exerciseId
+            - kind
+            - reps
+          type: object
+      required:
+        - workout
+      type: object
+    ListWorkoutsResponse:
+      additionalProperties: false
+      properties:
+        cursor:
+          maxLength: 2048
+          minLength: 1
+          type: string
+        workouts:
+          items:
+            additionalProperties: false
+            properties:
+              durationSeconds:
+                maximum: 86400
+                minimum: 1
+                type: integer
+              exerciseId:
+                maxLength: 128
+                minLength: 1
+                type: string
+              kind:
+                enum:
+                  - set
+                  - pushup
+                type: string
+              loggedAt:
+                format: date-time
+                type: string
+              reps:
+                maximum: 10000
+                minimum: 1
+                type: integer
+              userId:
+                maxLength: 128
+                minLength: 1
+                type: string
+              weightKg:
+                maximum: 10000
+                minimum: 0
+                type: number
+              workoutId:
+                format: uuid
+                type: string
+            required:
+              - workoutId
+              - userId
+              - loggedAt
+              - exerciseId
+              - kind
+              - reps
+            type: object
+          type: array
+      required:
+        - workouts
+      type: object
+    LogWorkoutRequest:
+      additionalProperties: false
+      properties:
+        durationSeconds:
+          maximum: 86400
+          minimum: 1
+          type: integer
+        exerciseId:
+          maxLength: 128
+          minLength: 1
+          type: string
+        kind:
+          enum:
+            - set
+            - pushup
+          type: string
+        reps:
+          maximum: 10000
+          minimum: 1
+          type: integer
+        weightKg:
+          maximum: 10000
+          minimum: 0
+          type: number
+      required:
+        - exerciseId
+        - kind
+        - reps
+      type: object
+    LogWorkoutResponse:
+      additionalProperties: false
+      properties:
+        workout:
+          additionalProperties: false
+          properties:
+            durationSeconds:
+              maximum: 86400
+              minimum: 1
+              type: integer
+            exerciseId:
+              maxLength: 128
+              minLength: 1
+              type: string
+            kind:
+              enum:
+                - set
+                - pushup
+              type: string
+            loggedAt:
+              format: date-time
+              type: string
+            reps:
+              maximum: 10000
+              minimum: 1
+              type: integer
+            userId:
+              maxLength: 128
+              minLength: 1
+              type: string
+            weightKg:
+              maximum: 10000
+              minimum: 0
+              type: number
+            workoutId:
+              format: uuid
+              type: string
+          required:
+            - workoutId
+            - userId
+            - loggedAt
+            - exerciseId
+            - kind
+            - reps
+          type: object
+      required:
+        - workout
+      type: object
+    LoggingApiError:
+      additionalProperties: false
+      properties:
+        code:
+          enum:
+            - BAD_REQUEST
+            - UNAUTHORIZED
+            - FORBIDDEN
+            - NOT_FOUND
+            - CONFLICT
+            - TOO_MANY_REQUESTS
+            - METHOD_NOT_ALLOWED
+            - PAYLOAD_TOO_LARGE
+            - SERVICE_UNAVAILABLE
+            - INTERNAL
+          type: string
+        message:
+          maxLength: 500
+          minLength: 1
+          type: string
+      required:
+        - code
+        - message
+      type: object
+    Workout:
+      additionalProperties: false
+      properties:
+        durationSeconds:
+          maximum: 86400
+          minimum: 1
+          type: integer
+        exerciseId:
+          maxLength: 128
+          minLength: 1
+          type: string
+        kind:
+          enum:
+            - set
+            - pushup
+          type: string
+        loggedAt:
+          format: date-time
+          type: string
+        reps:
+          maximum: 10000
+          minimum: 1
+          type: integer
+        userId:
+          maxLength: 128
+          minLength: 1
+          type: string
+        weightKg:
+          maximum: 10000
+          minimum: 0
+          type: number
+        workoutId:
+          format: uuid
+          type: string
+      required:
+        - workoutId
+        - userId
+        - loggedAt
+        - exerciseId
+        - kind
+        - reps
+      type: object
+  securitySchemes:
+    bearerAuth:
+      bearerFormat: JWT
+      description: ES256 access token issued by services/auth. Verified against the JWKS endpoint.
+      scheme: bearer
+      type: http
+info:
+  description: >-
+    Workout log for the Gym project. Records sets, reps and push-up counts; publishes
+    `workout.logged.v1` on every write. See `services/logging/README.md` for the full spec.
+  title: Gym logging API
+  version: 1.0.0
+openapi: 3.1.0
+paths:
+  /health:
+    get:
+      description: Returns a self-contained HTML page with the current UTC time. No backing-service reads.
+      responses:
+        '200':
+          content:
+            text/html:
+              schema:
+                type: string
+          description: ok
+      summary: Liveness probe
+  /workouts:
+    get:
+      description: Returns the authenticated user's workouts, newest first, with cursor pagination.
+      parameters:
+        - in: query
+          name: from
+          required: false
+          schema:
+            format: date-time
+            type: string
+        - in: query
+          name: to
+          required: false
+          schema:
+            format: date-time
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            maximum: 100
+            minimum: 1
+            type: integer
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            maxLength: 2048
+            minLength: 1
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListWorkoutsResponse'
+          description: ok
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: conflict
+        '413':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: payload too large
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: too many requests
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: internal error
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: service unavailable
+      security:
+        - bearerAuth: []
+      summary: List the caller's workouts
+    post:
+      description: >-
+        Persists a workout for the authenticated user and publishes `workout.logged.v1`. Supports an
+        optional `Idempotency-Key` header for safe retries.
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            description: Opaque idempotency key, 8-64 chars from [A-Za-z0-9_-].
+            pattern: ^[A-Za-z0-9_-]{8,64}$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogWorkoutRequest'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogWorkoutResponse'
+          description: created
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: conflict
+        '413':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: payload too large
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: too many requests
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: internal error
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: service unavailable
+      security:
+        - bearerAuth: []
+      summary: Record a workout
+  /workouts/{workoutId}:
+    get:
+      description: >-
+        Returns a single workout owned by the caller. 404 is returned both for missing and foreign
+        workouts.
+      parameters:
+        - in: path
+          name: workoutId
+          required: true
+          schema:
+            format: uuid
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetWorkoutResponse'
+          description: ok
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: bad request
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: unauthorized
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: forbidden
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: not found
+        '409':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: conflict
+        '413':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: payload too large
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: too many requests
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: internal error
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingApiError'
+          description: service unavailable
+      security:
+        - bearerAuth: []
+      summary: Fetch one workout
+servers:
+  - description: ap-southeast-2 production (GymLoggingStack.ApiUrl)
+    url: https://4ckn6orn55.execute-api.ap-southeast-2.amazonaws.com
+webhooks: {}

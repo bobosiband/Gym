@@ -81,11 +81,13 @@ Every service listed below is a bounded context. Each owns its own data store an
 #### services/logging (Stage 2)
 
 - **Purpose.** Records sets, reps, weight, push-up counts.
-- **Proposed language.** Java (pending owner approval).
-- **Infra.** AWS Lambda + API Gateway.
-- **Data store.** AWS DynamoDB (per-user partition key).
+- **Language.** TypeScript.
+- **Infra.** AWS Lambda behind an HTTP API Gateway, DynamoDB on-demand, EventBridge (shared `gym-events` bus), SSM standard parameters. No VPC, NAT, provisioned concurrency, WAF, Cognito, or KMS customer-managed keys.
+- **Data store.** Two DynamoDB tables: a workouts table (partition key `pk = USER#<userId>`, sort key `sk = WORKOUT#<loggedAt>#<workoutId>`, GSI `by-workout` for point lookups) and an idempotency table (TTL-swept, keyed by `(userId, idempotencyKey)`).
 - **Events in.** None.
-- **Events out.** `workout.logged` on every successful write.
+- **Events out.** `workout.logged.v1` on every successful write.
+- **API spec.** `docs/swagger/logging.yaml` (OpenAPI 3.1, generated from the Zod schemas in `packages/contracts/src/api/logging.ts`).
+- **Decision.** The service verifies the auth JWT inline inside each Lambda via `JwksJwtVerifier` (jose's `createRemoteJWKSet`, 10 minute cache) rather than through an API Gateway JWT authorizer, mirroring the auth service's `/auth/me` rationale. See `services/logging/README.md` for the endpoints table, security posture, and the idempotency state machine.
 
 #### services/stats (Stage 4)
 
