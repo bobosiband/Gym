@@ -1,0 +1,29 @@
+@startuml
+title Gym logging: GET /workouts/{workoutId}
+
+actor User
+participant "PWA" as Client
+participant "API Gateway\n(HTTP API)" as APIGW
+participant "GetWorkoutLambda" as GetLambda
+participant "JwksJwtVerifier" as Verifier
+participant "LoggingService" as Service
+database "DynamoDB\n(workouts, by-workout GSI)" as Dynamo
+
+User -> Client : tap on a workout
+Client -> APIGW : GET /workouts/<id>\nAuthorization: Bearer <jwt>
+APIGW -> GetLambda : invoke
+GetLambda -> Verifier : verify(jwt)
+Verifier --> GetLambda : AccessTokenClaims { sub }
+GetLambda -> Service : getWorkout(sub, workoutId)
+Service -> Dynamo : Query by-workout GSI\nworkoutId = :w, Limit 1
+Dynamo --> Service : item or empty
+alt item.userId == sub
+  Service --> GetLambda : workout
+  GetLambda --> APIGW : 200 { workout }
+else foreign or missing
+  Service --> GetLambda : LoggingServiceError NOT_FOUND
+  GetLambda --> APIGW : 404 LoggingApiError
+end
+APIGW --> Client : response
+
+@enduml

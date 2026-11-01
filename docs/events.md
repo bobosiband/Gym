@@ -16,14 +16,24 @@ Any change to an event schema is a **breaking change** and needs explicit owner 
 - **Schema.** `packages/contracts/src/events/userRegistered.v1.ts`.
 - **Payload.** `eventId` (UUID v4, idempotency key), `userId` (same subject that appears in access tokens), `registeredAt` (ISO 8601 UTC).
 
-## Draft events (Stage 1, not yet implemented)
-
 ### workout.logged.v1
 
 - **Emitted by.** `services/logging`
-- **Emitted when.** A set, rep count, or push-up count is successfully persisted.
-- **Consumed by.** `services/stats`, `services/progress`, `services/achievements`, `services/planner`, `services/reminders`.
-- **Payload (planned).** `userId`, `loggedAt` (ISO 8601 UTC), `exerciseId` (foreign key into catalogue), `kind` ("set" or "pushup"), `reps`, `weightKg` (optional), `durationSeconds` (optional). Exact schema is finalised when `services/logging` is built in Stage 2.
+- **Emitted when.** A set, rep count, or push-up count is successfully persisted to the workouts table, after the row commit and before the HTTP response is returned. On a retry of a request with the same `Idempotency-Key`, the service re-publishes with the same `eventId` so consumers dedupe cleanly on the bus.
+- **Consumed by.** None in Stage 2. Reserved for `services/stats`, `services/progress`, `services/achievements`, `services/planner`, and `services/reminders` from Stage 3 onwards.
+- **Schema.** `packages/contracts/src/events/workoutLogged.v1.ts`.
+- **Payload.**
+  - `eventId` (UUID, idempotency key).
+  - `userId` (same subject that appears in access tokens).
+  - `workoutId` (UUID, matches the stored record).
+  - `loggedAt` (ISO 8601 UTC, set by the service clock).
+  - `exerciseId` (opaque identifier into `services/catalogue`; logging does not read catalogue's database).
+  - `kind` (`"set"` or `"pushup"`).
+  - `reps` (positive integer, 1 to 10 000).
+  - `weightKg` (optional, 0 to 10 000).
+  - `durationSeconds` (optional, positive integer, 1 to 86 400).
+
+## Draft events (not yet implemented)
 
 ### progress.level_up.v1
 

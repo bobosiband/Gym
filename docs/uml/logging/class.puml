@@ -1,0 +1,90 @@
+@startuml
+title Gym logging: core classes (Stage 2)
+
+skinparam shadowing false
+
+package "services/logging/src" {
+  package "handlers" {
+    class LogWorkoutHandler {
+      + handle(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2>
+    }
+    class GetWorkoutHandler
+    class ListWorkoutsHandler
+    class HealthHandler <<utility>> {
+      + {static} handle(): APIGatewayProxyStructuredResultV2
+    }
+    class HandlerBase <<utility>> {
+      + {static} readBearerToken(event): string | null
+      + {static} readIdempotencyKey(event): PresentAbsentInvalid
+      + {static} parseBodyOrFail(event, schema): ParseResult
+      + {static} mapLoggingError(err: LoggingServiceError): APIGatewayProxyStructuredResultV2
+    }
+    class HandlerSchemas <<utility>>
+  }
+
+  package "service" {
+    class LoggingService {
+      - deps: LoggingServiceDeps
+      + logWorkout(input: LogWorkoutInput): Promise<LogWorkoutResponse>
+      + getWorkout(userId: string, workoutId: string): Promise<Workout>
+      + listWorkouts(userId: string, options: ListWorkoutsOptions): Promise<WorkoutPage>
+    }
+    class LoggingServiceError
+    class LoggingServiceFactory <<factory>>
+  }
+
+  package "workouts" {
+    interface WorkoutRepository
+    class DynamoWorkoutRepository
+  }
+
+  package "idempotency" {
+    interface IdempotencyRepository
+    class DynamoIdempotencyRepository
+  }
+
+  package "tokens" {
+    interface JwtVerifier
+    class JwksJwtVerifier
+  }
+
+  package "events" {
+    interface EventPublisher
+    class EventBridgeEventPublisher
+  }
+
+  package "http" {
+    class ApiResponder <<utility>>
+    class ApiErrors <<utility>>
+    class BodyParser <<utility>>
+    class Cors <<utility>>
+  }
+
+  package "config" {
+    interface LoggingConfig
+    class SsmConfigLoader
+    class SsmParamNames <<utility>>
+  }
+}
+
+LogWorkoutHandler --> LoggingService
+LogWorkoutHandler --> JwtVerifier
+GetWorkoutHandler --> LoggingService
+GetWorkoutHandler --> JwtVerifier
+ListWorkoutsHandler --> LoggingService
+ListWorkoutsHandler --> JwtVerifier
+
+LoggingService --> WorkoutRepository
+LoggingService --> IdempotencyRepository
+LoggingService --> EventPublisher
+
+DynamoWorkoutRepository ..|> WorkoutRepository
+DynamoIdempotencyRepository ..|> IdempotencyRepository
+JwksJwtVerifier ..|> JwtVerifier
+EventBridgeEventPublisher ..|> EventPublisher
+
+LoggingServiceFactory ..> SsmConfigLoader
+LoggingServiceFactory ..> LoggingService
+LoggingServiceFactory ..> JwksJwtVerifier
+
+@enduml
