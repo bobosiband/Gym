@@ -1,0 +1,21 @@
+@startuml
+title Gym pushup-counter: rep state machine
+
+[*] --> Unknown
+
+Unknown --> Up : elbow angle >= 160
+Unknown --> Down : elbow angle <= 90
+
+Up --> Down : elbow angle <= 90
+Down --> Up : elbow angle >= 160 (count += 1)
+
+Up --> Up : 90 < angle < 160
+Down --> Down : 90 < angle < 160
+
+note right of Down
+  Rep increments on the Down -> Up
+  transition. Low-visibility frames
+  do not change the phase.
+end note
+
+@enduml
