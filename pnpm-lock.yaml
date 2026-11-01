@@ -160,6 +160,31 @@ importers:
         specifier: ^5.6.2
         version: 5.9.3
 
+  infra/progress:
+    dependencies:
+      aws-cdk-lib:
+        specifier: ^2.158.0
+        version: 2.275.0(constructs@10.8.1)
+      constructs:
+        specifier: ^10.3.0
+        version: 10.8.1
+    devDependencies:
+      '@types/node':
+        specifier: ^20.19.0
+        version: 20.19.43
+      aws-cdk:
+        specifier: ^2.158.0
+        version: 2.1146.1
+      esbuild:
+        specifier: ^0.24.0
+        version: 0.24.2
+      tsx:
+        specifier: ^4.19.0
+        version: 4.23.15
+      typescript:
+        specifier: ^5.6.2
+        version: 5.9.3
+
   packages/contracts:
     dependencies:
       zod:
@@ -304,6 +329,43 @@ importers:
       wrangler:
         specifier: ^3.90.0
         version: 3.114.17(@cloudflare/workers-types@4.20260702.1)
+
+  services/progress:
+    dependencies:
+      '@aws-sdk/client-dynamodb':
+        specifier: ^3.700.0
+        version: 3.1159.0
+      '@aws-sdk/client-eventbridge':
+        specifier: ^3.700.0
+        version: 3.1159.0
+      '@aws-sdk/client-ssm':
+        specifier: ^3.700.0
+        version: 3.1159.0
+      '@aws-sdk/lib-dynamodb':
+        specifier: ^3.700.0
+        version: 3.1159.0(@aws-sdk/client-dynamodb@3.1159.0)
+      '@gym/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      jose:
+        specifier: ^5.9.6
+        version: 5.10.0
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
+    devDependencies:
+      '@types/aws-lambda':
+        specifier: ^8.10.145
+        version: 8.10.164
+      '@types/node':
+        specifier: ^20.19.0
+        version: 20.19.43
+      typescript:
+        specifier: ^5.6.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@20.19.43)(jsdom@25.0.1)
 
 packages:
 

@@ -33,22 +33,35 @@ Any change to an event schema is a **breaking change** and needs explicit owner 
   - `weightKg` (optional, 0 to 10 000).
   - `durationSeconds` (optional, positive integer, 1 to 86 400).
 
-## Draft events (not yet implemented)
-
 ### progress.level_up.v1
 
 - **Emitted by.** `services/progress`
-- **Emitted when.** A user crosses an XP threshold.
-- **Consumed by.** `services/achievements`.
-- **Payload (planned).** `userId`, `newLevel`, `levelAt` (ISO 8601 UTC), `xpTotal`. Exact schema is finalised when `services/progress` is built in Stage 3.
+- **Emitted when.** A user's cumulative XP crosses one or more level thresholds inside a single `workout.logged.v1` consumption. `previousLevel` records the level immediately before the crossing so a consumer can compute how many levels were crossed in a batch.
+- **Consumed by.** None in Stage 3. Reserved for `services/achievements` (badges keyed off level thresholds).
+- **Schema.** `packages/contracts/src/events/progressLevelUp.v1.ts`.
+- **Payload.** `eventId` (UUID), `userId`, `previousLevel`, `newLevel`, `xpTotal`, `occurredAt` (ISO 8601 UTC).
+
+### streak.broken.v1
+
+- **Emitted by.** `services/progress`
+- **Emitted when.** A counted day arrives more than one calendar day after the user's `lastActiveLocalDate` and the stored freeze balance cannot cover the gap. `previousStreakDays` is at least `1` because a never-started streak never emits this event.
+- **Consumed by.** None in Stage 3. Reserved for `services/reminders` (nudge the user) and `services/achievements` (reset streak-based badges).
+- **Schema.** `packages/contracts/src/events/streakBroken.v1.ts`.
+- **Payload.** `eventId` (UUID), `userId`, `previousStreakDays`, `missedDays`, `occurredAt`.
+
+### streak.frozen.v1
+
+- **Emitted by.** `services/progress`
+- **Emitted when.** A counted day arrives more than one calendar day after the user's `lastActiveLocalDate` and the stored freeze balance covers every missed day. The service decrements the freeze balance by `missedDays` before emitting.
+- **Consumed by.** None in Stage 3. Reserved for `services/reminders` (surface the freeze-used notification) and `services/achievements`.
+- **Schema.** `packages/contracts/src/events/streakFrozen.v1.ts`.
+- **Payload.** `eventId` (UUID), `userId`, `streakDaysAfter`, `missedDays`, `remainingFreezes`, `occurredAt`.
 
 ## Reserved event names
 
 Reserve the following names so later contributors do not use them for unrelated purposes:
 
 - `achievement.awarded.v1`
-- `streak.broken.v1`
-- `streak.frozen.v1`
 - `plan.generated.v1`
 - `plan.completed.v1`
 

@@ -1,0 +1,87 @@
+@startuml
+title Gym progress: core classes (Stage 3)
+
+skinparam shadowing false
+
+package "services/progress/src" {
+  package "handlers" {
+    class HealthHandler <<utility>>
+    class GetProgressHandler
+    class SetTimeZoneHandler
+    class SetDailyTargetHandler
+    class WorkoutLoggedConsumer
+    class HandlerBase <<utility>>
+  }
+
+  package "progress" {
+    class ProgressService {
+      + getProgress(userId): Promise<ProgressState>
+      + setTimeZone(userId, zone): Promise<ProgressState>
+      + setDailyTarget(userId, request): Promise<ProgressState>
+      + grantFreezes(userId, amount): Promise<ProgressState>
+      + handleWorkoutLogged(event): Promise<void>
+    }
+    class ProgressServiceError
+    interface ProgressRepository
+    interface ProcessedEventRepository
+    class DynamoProgressRepository
+    class DynamoProcessedEventRepository
+    class XpRules <<utility>>
+    class StreakRules <<utility>>
+    class FreezeRules <<utility>>
+  }
+
+  package "events" {
+    interface EventPublisher
+    class EventBridgeEventPublisher
+  }
+
+  package "tokens" {
+    interface JwtVerifier
+    class JwksJwtVerifier
+  }
+
+  package "config" {
+    interface ProgressConfig
+    class SsmConfigLoader
+  }
+
+  package "http" {
+    class ApiResponder <<utility>>
+    class ApiErrors <<utility>>
+    class Cors <<utility>>
+  }
+
+  package "util" {
+    class LocalDate <<utility>>
+    interface Clock
+    class SystemClock
+    interface IdGenerator
+    class CryptoIdGenerator
+  }
+}
+
+GetProgressHandler --> ProgressService
+GetProgressHandler --> JwtVerifier
+SetTimeZoneHandler --> ProgressService
+SetTimeZoneHandler --> JwtVerifier
+SetDailyTargetHandler --> ProgressService
+SetDailyTargetHandler --> JwtVerifier
+WorkoutLoggedConsumer --> ProgressService
+
+ProgressService --> ProgressRepository
+ProgressService --> ProcessedEventRepository
+ProgressService --> EventPublisher
+ProgressService --> XpRules
+ProgressService --> StreakRules
+ProgressService --> FreezeRules
+ProgressService --> LocalDate
+
+DynamoProgressRepository ..|> ProgressRepository
+DynamoProcessedEventRepository ..|> ProcessedEventRepository
+EventBridgeEventPublisher ..|> EventPublisher
+JwksJwtVerifier ..|> JwtVerifier
+SystemClock ..|> Clock
+CryptoIdGenerator ..|> IdGenerator
+
+@enduml
