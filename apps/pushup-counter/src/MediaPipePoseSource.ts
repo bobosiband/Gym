@@ -36,11 +36,10 @@ const DEFAULT_MODEL_ASSET_URL =
  * stack in jsdom is not useful: the counting logic lives in
  * {@link PushupRepCounter}, which is fully tested in isolation.
  */
+type DefaultOptions = Pick<MediaPipePoseSourceOptions, 'wasmBaseUrl' | 'modelAssetUrl'>;
+
 export class MediaPipePoseSource implements PoseSource {
-  public static readonly defaults: Pick<
-    MediaPipePoseSourceOptions,
-    'wasmBaseUrl' | 'modelAssetUrl'
-  > = {
+  public static readonly defaults: DefaultOptions = {
     wasmBaseUrl: DEFAULT_WASM_BASE_URL,
     modelAssetUrl: DEFAULT_MODEL_ASSET_URL,
   };
