@@ -30,8 +30,16 @@ export class Cors {
    * preflight).
    */
   public static preflightResponse(request: Request, allowedOrigins: readonly string[]): Response {
-    const origin = request.headers.get('origin');
     const headers = new Headers();
+    if (Cors.isWildcard(allowedOrigins)) {
+      headers.set('access-control-allow-origin', '*');
+      headers.set('access-control-allow-methods', 'GET, HEAD, OPTIONS');
+      headers.set('access-control-allow-headers', 'content-type, range');
+      headers.set('access-control-expose-headers', 'content-length, content-type, etag');
+      headers.set('access-control-max-age', String(MAX_AGE_SECONDS));
+      return new Response(null, { status: 204, headers });
+    }
+    const origin = request.headers.get('origin');
     if (origin !== null && allowedOrigins.includes(origin)) {
       headers.set('access-control-allow-origin', origin);
       headers.set('access-control-allow-methods', 'GET, HEAD, OPTIONS');
@@ -52,6 +60,16 @@ export class Cors {
     request: Request,
     allowedOrigins: readonly string[]
   ): Response {
+    if (Cors.isWildcard(allowedOrigins)) {
+      const headers = new Headers(response.headers);
+      headers.set('access-control-allow-origin', '*');
+      headers.set('access-control-expose-headers', 'content-length, content-type, etag');
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+      });
+    }
     const origin = request.headers.get('origin');
     if (origin === null || !allowedOrigins.includes(origin)) {
       return response;
@@ -66,5 +84,9 @@ export class Cors {
       statusText: response.statusText,
       headers,
     });
+  }
+
+  private static isWildcard(allowedOrigins: readonly string[]): boolean {
+    return allowedOrigins.length === 1 && allowedOrigins[0] === '*';
   }
 }

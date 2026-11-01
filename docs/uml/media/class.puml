@@ -13,7 +13,11 @@ package "services/media/src" {
   class HealthHandler <<utility>> {
     + {static} handle(): Response
   }
-  class Cors <<utility>>
+  class Cors <<utility>> {
+    + {static} preflightResponse(request, allowedOrigins): Response
+    + {static} withCorsHeaders(response, request, allowedOrigins): Response
+    .. supports wildcard (`*`) allow list per CLAUDE.md rule 15 ..
+  }
   class ApiErrors <<utility>>
   class JsonResponder <<utility>>
 

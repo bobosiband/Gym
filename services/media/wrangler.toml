@@ -7,10 +7,12 @@ compatibility_flags = ["nodejs_compat"]
 enabled = true
 
 [vars]
-# Default local allow list. Override per environment at deploy time with:
-#   wrangler deploy --var ALLOWED_ORIGINS:"https://example.com,https://example.org"
-# Comma-separated, no spaces required.
-ALLOWED_ORIGINS = "http://localhost:5173"
+# Default allow list. Comma-separated, no spaces required. `*` allows
+# any origin and is permitted during early frontend bring-up per the
+# owner's 2026-10-29 policy update (see CLAUDE.md rule 15). Override
+# per environment at deploy time with:
+#   wrangler deploy --var ALLOWED_ORIGINS:"https://example.com"
+ALLOWED_ORIGINS = "*"
 
 # Media is immutable once uploaded; a long browser cache is safe. Keep
 # this as a var (not hardcoded) so the owner can tune it per
