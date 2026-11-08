@@ -124,6 +124,22 @@ Audited the rest of the repo for the same anti-pattern. The only other candidate
 
 Also stopped swallowing errors in every screen that falls back to a generic connection message. Each catch now logs the original `err` with `console.error` before setting the user-facing message: `LoginScreen`, `RegisterScreen`, `HistoryScreen`, `ResetPasswordScreen`, `VerifyEmailNoticeScreen`, `VerifyEmailConfirmScreen`, `LogWorkoutScreen` (three catch sites), `ForgotPasswordScreen`. No passwords, tokens or request bodies are in scope at those catch sites, so the log is safe.
 
+## Bug fix: verification and reset emails contained unclickable links
+
+`infra/auth/lib/AuthStack.ts` built `APP_VERIFY_URL` and `APP_RESET_URL` from `resolveFirstAppOrigin()`, the same source as `ALLOWED_ORIGINS`. Under the 2026-10-29 wildcard CORS policy `APP_ORIGINS=*`, so every verification and password-reset email went out with a link whose base was literally `*`, not a URL. Not clickable in any mail client.
+
+Fix: a new `APP_PUBLIC_URL` config value, sourced from `services/auth/.env` and validated at synth time by a new `AppPublicUrl.resolve()` helper in `infra/auth/lib/AppPublicUrl.ts`. The helper rejects missing, empty, `*`, relative, unparseable, and non-https values with actionable error messages that explicitly name `ALLOWED_ORIGINS` as the place where `*` is still correct. `ALLOWED_ORIGINS` itself keeps reading from `APP_ORIGINS`, so CORS still accepts the wildcard per the 2026-10-29 policy. Production value set to `https://gym-phi-blush-16.vercel.app`, pulled via `vercel project ls`.
+
+Added `tests/infra-auth/AppPublicUrl.test.ts` with 10 cases (missing, empty, `*`, relative, non-URL, http, happy-path Vercel URL, trailing slash, whitespace, path prefix). A new `tests/infra-auth` workspace was wired up with its own `vitest.config.ts` and a `test` script in `infra/auth/package.json`; vitest was already in the lockfile from sibling workspaces, so no new npm package entered `pnpm-lock.yaml`. One assertion was also added to the existing register-happy-path test in `tests/auth/AuthService.test.ts` so the verification email body is now checked to contain an absolute `https://` link with a `token=` query parameter.
+
+Verified by running the four invalid `APP_PUBLIC_URL` values through `npx tsx bin/auth.ts` directly: all four refused to synth with the right error. The valid value synths cleanly.
+
+Auth stack is redeployed via `pnpm --filter @gym/auth deploy`, which loads `services/auth/.env` as a Node `--env-file`. The sibling `pnpm --filter @gym/infra-auth deploy` script runs `cdk deploy` without an env file, so it would fail the `AppPublicUrl.resolve` check unless the shell already carries the var. Redeploying via the `@gym/auth` entrypoint is therefore the correct command going forward. The CDK diff is Lambda environment variables only: `APP_VERIFY_URL` and `APP_RESET_URL` move from `*/verify` and `*/reset` to `https://gym-phi-blush-16.vercel.app/verify` and `https://gym-phi-blush-16.vercel.app/reset`. No tables, stacks, or other resources are destroyed. `ALLOWED_ORIGINS` stays `*`.
+
+### Follow-up noted for the owner
+
+- The stack still uses `VERIFY_URL_PATH = 'verify'` and `RESET_URL_PATH = 'reset'` (`infra/auth/lib/AuthStack.ts` lines 56-57), but the web app renders verification at `/verify-email` and password reset at `/reset-password` (see `apps/web/src/screens/VerifyEmailConfirmScreen.tsx` and `apps/web/src/screens/ResetPasswordScreen.tsx`). The links in email are now clickable `https://` URLs, but they will 404 at the web app until either the stack paths or the web routes are brought into alignment. Out of scope for this PR because the owner's brief was specifically about the base URL; flagging so it does not get missed.
+
 ## Free-tier status
 
 Every service is inside the free tier on its platform:

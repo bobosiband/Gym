@@ -30,6 +30,9 @@ describe('AuthService.register', () => {
     expect(h.mailer.sent.length).toBe(1);
     expect(h.mailer.sent[0]!.to).toBe(EMAIL);
     expect(h.mailer.sent[0]!.subject).toContain('Verify');
+    const link = h.mailer.sent[0]!.text.split('\n').find((line) => line.startsWith('https://'));
+    expect(link).toBeDefined();
+    expect(link).toMatch(/^https:\/\/[^*\s]+\?token=[^&\s]+$/);
   });
 
   it('normalises the email to lowercase + trimmed', async () => {
