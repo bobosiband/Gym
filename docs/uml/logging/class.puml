@@ -67,8 +67,13 @@ package "services/logging/src" {
   }
 }
 
+package "@gym/exercise-core" {
+  class ExerciseRegistry
+}
+
 LogWorkoutHandler --> LoggingService
 LogWorkoutHandler --> JwtVerifier
+LogWorkoutHandler --> ExerciseRegistry
 GetWorkoutHandler --> LoggingService
 GetWorkoutHandler --> JwtVerifier
 ListWorkoutsHandler --> LoggingService
@@ -86,5 +91,6 @@ EventBridgeEventPublisher ..|> EventPublisher
 LoggingServiceFactory ..> SsmConfigLoader
 LoggingServiceFactory ..> LoggingService
 LoggingServiceFactory ..> JwksJwtVerifier
+LoggingServiceFactory ..> ExerciseRegistry
 
 @enduml

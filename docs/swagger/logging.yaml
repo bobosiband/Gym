@@ -16,9 +16,9 @@ components:
               minLength: 1
               type: string
             kind:
-              enum:
-                - set
-                - pushup
+              maxLength: 64
+              minLength: 1
+              pattern: ^[a-z][a-z0-9-]*$
               type: string
             loggedAt:
               format: date-time
@@ -69,9 +69,9 @@ components:
                 minLength: 1
                 type: string
               kind:
-                enum:
-                  - set
-                  - pushup
+                maxLength: 64
+                minLength: 1
+                pattern: ^[a-z][a-z0-9-]*$
                 type: string
               loggedAt:
                 format: date-time
@@ -115,9 +115,9 @@ components:
           minLength: 1
           type: string
         kind:
-          enum:
-            - set
-            - pushup
+          maxLength: 64
+          minLength: 1
+          pattern: ^[a-z][a-z0-9-]*$
           type: string
         reps:
           maximum: 10000
@@ -147,9 +147,9 @@ components:
               minLength: 1
               type: string
             kind:
-              enum:
-                - set
-                - pushup
+              maxLength: 64
+              minLength: 1
+              pattern: ^[a-z][a-z0-9-]*$
               type: string
             loggedAt:
               format: date-time
@@ -216,9 +216,9 @@ components:
           minLength: 1
           type: string
         kind:
-          enum:
-            - set
-            - pushup
+          maxLength: 64
+          minLength: 1
+          pattern: ^[a-z][a-z0-9-]*$
           type: string
         loggedAt:
           format: date-time

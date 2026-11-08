@@ -36,8 +36,16 @@ describe('HandlerSchemas.logWorkout', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects an unknown kind', () => {
+  it('accepts any kebab-case kind at the schema layer', () => {
+    // Registry membership is enforced by the handler against the
+    // injected ExerciseRegistry so new exercises do not require a
+    // contract bump. See LogWorkoutHandler for the 400 path.
     const result = schema.safeParse({ exerciseId: 'x', kind: 'swim', reps: 1 });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a malformed kind that violates the kebab-case shape', () => {
+    const result = schema.safeParse({ exerciseId: 'x', kind: 'Push Up', reps: 1 });
     expect(result.success).toBe(false);
   });
 });

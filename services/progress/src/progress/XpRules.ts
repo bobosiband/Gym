@@ -1,26 +1,19 @@
-import type { WorkoutLoggedV1Event } from '@gym/contracts';
-
 /**
- * Pure functions that turn workout facts into XP and levels.
+ * Cross-exercise XP helpers shared by the progress bounded context.
  *
- * Rules (fixed for Stage 3; owner may tune later):
+ * Per-event XP is delegated to each exercise's own {@link XpRule}
+ * strategy (looked up by the service through its injected
+ * {@link ExerciseRegistry}); this class owns only the rules that are
+ * exercise-agnostic:
  *
- *  - A push-up event earns `1 XP per 10 reps` rounded down. A rep
- *    rounds up only when the user hits the daily target bonus
- *    threshold ({@link XpRules.DAILY_TARGET_BONUS_XP}).
- *  - A set-based workout (resistance training) earns a flat
- *    {@link XpRules.SET_XP} regardless of reps or weight.
- *  - Hitting the daily push-up target earns a one-time
- *    {@link XpRules.DAILY_TARGET_BONUS_XP} bonus on the day it is
- *    hit.
- *  - Levels follow a quadratic curve: cumulative XP to reach level
- *    `N` is `100 * N^2`. Level 1 unlocks at 100 XP, level 2 at
- *    400 XP, level 3 at 900 XP, and so on. The curve is smooth
- *    enough that early levels feel attainable but late levels take
- *    sustained training.
+ *  - The one-time daily-target bonus
+ *    ({@link XpRules.DAILY_TARGET_BONUS_XP}).
+ *  - The level curve: cumulative XP to reach level `N` is
+ *    `100 * N^2`. Level 1 unlocks at 100 XP, level 2 at 400 XP,
+ *    level 3 at 900 XP, and so on. Smooth enough that early levels
+ *    feel attainable and late levels take sustained training.
  */
 export class XpRules {
-  public static readonly SET_XP = 10;
   public static readonly DAILY_TARGET_BONUS_XP = 50;
 
   private constructor() {
@@ -28,24 +21,8 @@ export class XpRules {
   }
 
   /**
-   * XP awarded for a single `workout.logged.v1` event (before any
-   * daily-target bonus).
-   */
-  public static baseXpForEvent(
-    event: Pick<WorkoutLoggedV1Event.WorkoutLoggedV1, 'kind' | 'reps'>
-  ): number {
-    if (event.kind === 'pushup') {
-      return Math.floor(event.reps / 10);
-    }
-    if (event.kind === 'set') {
-      return XpRules.SET_XP;
-    }
-    return 0;
-  }
-
-  /**
-   * Compute the user's level from cumulative XP. Returns `1` for
-   * any XP in `[0, 100)` so a brand new user is already at level 1,
+   * Compute the user's level from cumulative XP. Returns `1` for any
+   * XP in `[0, 100)` so a brand new user is already at level 1,
    * matching the UI expectation that there is no "level 0".
    */
   public static levelForXp(xp: number): number {

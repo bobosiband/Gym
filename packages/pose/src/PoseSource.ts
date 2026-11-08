@@ -7,9 +7,10 @@ export type PoseFrameListener = (landmarks: PoseLandmarks) => void;
 
 /**
  * Minimal interface implemented by MediaPipe-backed and in-memory
- * pose sources. Keeping the pushup widget behind this interface means
- * tests can drive it with a fake source and the production browser
- * stack can plug in MediaPipe without any widget changes.
+ * pose sources. The rep-counter UI does not know which source it is
+ * talking to; tests drive it with a hand-scripted source and the
+ * production browser stack plugs in a `MediaPipePoseSource` without
+ * any UI changes.
  */
 export interface PoseSource {
   /**

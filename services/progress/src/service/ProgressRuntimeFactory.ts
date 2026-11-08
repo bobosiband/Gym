@@ -2,6 +2,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { EventBridgeClient } from '@aws-sdk/client-eventbridge';
 import { SSMClient } from '@aws-sdk/client-ssm';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { DefaultExerciseRegistryFactory } from '@gym/exercise-pushup';
 
 import type { Env } from '../Env.js';
 import type { ProgressConfig } from '../config/ProgressConfig.js';
@@ -41,6 +42,7 @@ export class ProgressRuntimeFactory {
     const config = await new SsmConfigLoader(ssmClient, env.SSM_PARAM_PREFIX).load();
     const clock = new SystemClock();
     const ids = new CryptoIdGenerator();
+    const exercises = DefaultExerciseRegistryFactory.create();
     const service = new ProgressService({
       progress: new DynamoProgressRepository(dynamoClient, env.STATE_TABLE_NAME),
       processed: new DynamoProcessedEventRepository(
@@ -51,6 +53,7 @@ export class ProgressRuntimeFactory {
       events: new EventBridgeEventPublisher(eventsClient, env.EVENT_BUS_NAME),
       clock,
       ids,
+      exercises,
     });
     const verifier = new JwksJwtVerifier(config.jwksUrl, config.jwtIssuer, config.jwtAudience);
     return { service, verifier, config };

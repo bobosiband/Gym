@@ -47,13 +47,20 @@ export const timeZoneSchema = z.string().min(1).max(64);
 /**
  * Daily target block in the progress response.
  *
- * `remainingReps` decreases as push-up events arrive. `completedDays`
- * counts the number of distinct local dates on which the target was
- * hit; once it equals `durationDays`, the target is complete and
- * `remainingReps` is zero.
+ * `exerciseId` names the registered exercise whose reps feed this
+ * target (today, always `pushup`; the field is explicit so a future
+ * squat target does not look identical on the wire).
+ *
+ * `remainingReps` decreases as matching events arrive. The target is
+ * a MINIMUM: reps logged above it still count for XP, lifetime
+ * totals, and achievements. `completedDays` counts the number of
+ * distinct local dates on which the target was hit; once it equals
+ * `durationDays`, the target is complete and `remainingReps` is
+ * zero.
  */
 export const dailyTargetSchema = z
   .object({
+    exerciseId: z.string().min(1).max(64),
     repsPerDay: z.number().int().min(1).max(10_000),
     durationDays: z.number().int().min(1).max(365),
     startLocalDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),

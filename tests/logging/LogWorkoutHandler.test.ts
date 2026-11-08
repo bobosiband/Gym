@@ -9,7 +9,7 @@ const USER_ID = 'user-abc';
 describe('LogWorkoutHandler', () => {
   it('returns 201 and the workout for a valid request', async () => {
     const h = buildLoggingService();
-    const response = await new LogWorkoutHandler(h.service, h.verifier).handle(
+    const response = await new LogWorkoutHandler(h.service, h.verifier, h.exercises).handle(
       postEvent(
         '/workouts',
         { exerciseId: 'push-up', kind: 'pushup', reps: 25 },
@@ -25,7 +25,7 @@ describe('LogWorkoutHandler', () => {
 
   it('returns 401 when no Authorization header is present', async () => {
     const h = buildLoggingService();
-    const response = await new LogWorkoutHandler(h.service, h.verifier).handle(
+    const response = await new LogWorkoutHandler(h.service, h.verifier, h.exercises).handle(
       postEvent('/workouts', { exerciseId: 'push-up', kind: 'pushup', reps: 25 })
     );
     expect(response.statusCode).toBe(401);
@@ -34,7 +34,7 @@ describe('LogWorkoutHandler', () => {
   it('returns 401 when the verifier rejects the token', async () => {
     const h = buildLoggingService();
     h.verifier.failNext(new Error('bad token'));
-    const response = await new LogWorkoutHandler(h.service, h.verifier).handle(
+    const response = await new LogWorkoutHandler(h.service, h.verifier, h.exercises).handle(
       postEvent(
         '/workouts',
         { exerciseId: 'push-up', kind: 'pushup', reps: 25 },
@@ -48,7 +48,7 @@ describe('LogWorkoutHandler', () => {
 
   it('returns 400 for an invalid body', async () => {
     const h = buildLoggingService();
-    const response = await new LogWorkoutHandler(h.service, h.verifier).handle(
+    const response = await new LogWorkoutHandler(h.service, h.verifier, h.exercises).handle(
       postEvent(
         '/workouts',
         { exerciseId: 'push-up', kind: 'invalid', reps: 25 },
@@ -63,7 +63,7 @@ describe('LogWorkoutHandler', () => {
   it('returns 413 for an oversize body', async () => {
     const h = buildLoggingService();
     const bigString = 'x'.repeat(5000);
-    const response = await new LogWorkoutHandler(h.service, h.verifier).handle(
+    const response = await new LogWorkoutHandler(h.service, h.verifier, h.exercises).handle(
       postEvent(
         '/workouts',
         { exerciseId: bigString, kind: 'set', reps: 1 },
@@ -75,7 +75,7 @@ describe('LogWorkoutHandler', () => {
 
   it('returns 400 for a malformed Idempotency-Key header', async () => {
     const h = buildLoggingService();
-    const response = await new LogWorkoutHandler(h.service, h.verifier).handle(
+    const response = await new LogWorkoutHandler(h.service, h.verifier, h.exercises).handle(
       postEvent(
         '/workouts',
         { exerciseId: 'push-up', kind: 'pushup', reps: 10 },
@@ -95,10 +95,10 @@ describe('LogWorkoutHandler', () => {
       'idempotency-key': 'abcdef12345',
     };
     const body = { exerciseId: 'row', kind: 'set' as const, reps: 10 };
-    const first = await new LogWorkoutHandler(h.service, h.verifier).handle(
+    const first = await new LogWorkoutHandler(h.service, h.verifier, h.exercises).handle(
       postEvent('/workouts', body, headers)
     );
-    const second = await new LogWorkoutHandler(h.service, h.verifier).handle(
+    const second = await new LogWorkoutHandler(h.service, h.verifier, h.exercises).handle(
       postEvent('/workouts', body, headers)
     );
     expect(first.statusCode).toBe(201);
@@ -110,7 +110,7 @@ describe('LogWorkoutHandler', () => {
   it('returns 503 when publishing persistently fails', async () => {
     const h = buildLoggingService();
     h.events.failAlways();
-    const response = await new LogWorkoutHandler(h.service, h.verifier).handle(
+    const response = await new LogWorkoutHandler(h.service, h.verifier, h.exercises).handle(
       postEvent(
         '/workouts',
         { exerciseId: 'row', kind: 'set', reps: 10 },

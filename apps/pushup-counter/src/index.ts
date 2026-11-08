@@ -1,19 +1,20 @@
 /**
  * Public entry point for `@gym/pushup-counter`.
  *
- * Importers see the pure counter, its landmark types, the pose
- * source interface and the React widget. Internal helpers (geometry
- * primitives, the MediaPipe adapter) are available via their files
- * for tests but not re-exported here.
+ * Re-exports pose primitives from `@gym/pose` and the push-up
+ * strategy from `@gym/exercise-pushup` alongside the React widget
+ * used by the deployed PWA shell. The thin {@link PushupRepCounter}
+ * facade is retained so Stage 2 tests keep working.
  */
 
-export { ElbowAngle } from './ElbowAngle.js';
+export { PoseLandmarkIndex } from '@gym/pose';
+export type { PoseLandmark, PoseLandmarks, PoseSource, PoseFrameListener } from '@gym/pose';
+export { RepCounter } from '@gym/pose';
+export { MediaPipePoseSource } from '@gym/pose/browser';
+export type { MediaPipePoseSourceOptions } from '@gym/pose/browser';
+export { PushupRepDetector } from '@gym/exercise-pushup';
+export type { PushupRepDetectorOptions } from '@gym/exercise-pushup';
 export { PushupRepCounter } from './PushupRepCounter.js';
 export type { PushupPhase, PushupRepCounterOptions } from './PushupRepCounter.js';
-export { MediaPipePoseSource } from './MediaPipePoseSource.js';
-export type { MediaPipePoseSourceOptions } from './MediaPipePoseSource.js';
-export { PoseLandmarkIndex } from './PoseLandmark.js';
-export type { PoseLandmark, PoseLandmarks } from './PoseLandmark.js';
-export type { PoseFrameListener, PoseSource } from './PoseSource.js';
 export { PushupCounter } from './PushupCounter.js';
 export type { PushupCounterProps } from './PushupCounter.js';

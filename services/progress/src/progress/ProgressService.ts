@@ -1,3 +1,4 @@
+import type { ExerciseRegistry, WorkoutEventLike } from '@gym/exercise-core';
 import type { ProgressApi, WorkoutLoggedV1Event } from '@gym/contracts';
 import {
   PROGRESS_LEVEL_UP_V1_DETAIL_TYPE,
@@ -24,6 +25,7 @@ import { StreakRules } from './StreakRules.js';
 import { XpRules } from './XpRules.js';
 
 const DEFAULT_TIME_ZONE = 'UTC';
+const DEFAULT_TARGET_EXERCISE_ID = 'pushup';
 const PROCESSED_EVENT_TTL_SECONDS = 30 * 24 * 60 * 60;
 
 export interface ProgressServiceDeps {
@@ -32,6 +34,7 @@ export interface ProgressServiceDeps {
   readonly events: EventPublisher;
   readonly clock: Clock;
   readonly ids: IdGenerator;
+  readonly exercises: ExerciseRegistry;
 }
 
 /**
@@ -39,7 +42,11 @@ export interface ProgressServiceDeps {
  *
  * The service owns the invariants that keep XP, levels, streaks and
  * daily targets consistent as `workout.logged.v1` events arrive out
- * of order and sometimes twice. The flow for every event:
+ * of order and sometimes twice. Per-exercise scoring is delegated to
+ * strategies in the injected {@link ExerciseRegistry}; this class
+ * never branches on the event's `kind` field.
+ *
+ * Flow for every event:
  *
  *  1. Claim the eventId through
  *     {@link ProcessedEventRepository.tryClaim}. If the claim fails,
@@ -49,15 +56,17 @@ export interface ProgressServiceDeps {
  *     level=1, streak=0, freezeBalance=0, time zone=UTC.
  *  3. Load the daily summary for the event's local date (resolved
  *     against the user's time zone). If none, start a fresh summary.
- *  4. Fold the event into the summary: push-up events add reps,
- *     set events increment `setCount`.
- *  5. Decide if the day is "counted": push-up reps now hit the
- *     daily target or at least one set is logged.
+ *  4. Fold the event into the summary via the exercise's
+ *     {@link SummaryContribution}: the exercise decides how many
+ *     reps feed the target and whether the event marks the day
+ *     active on its own.
+ *  5. Decide if the day is "counted": it is active or the target
+ *     was hit.
  *  6. Advance the streak via {@link StreakRules.onActiveDay} and
  *     emit `streak.frozen.v1` or `streak.broken.v1` accordingly.
- *  7. Credit XP via {@link XpRules.baseXpForEvent}, add the daily-
- *     target bonus if the target was hit on this event, and emit
- *     `progress.level_up.v1` on each level crossed.
+ *  7. Credit XP via the exercise's {@link XpRule}, add the
+ *     daily-target bonus if the target was hit on this event, and
+ *     emit `progress.level_up.v1` on each level crossed.
  *  8. Persist the summary and the state row.
  */
 export class ProgressService {
@@ -89,10 +98,14 @@ export class ProgressService {
   }
 
   /**
-   * Set (or replace) the user's daily push-up target. Starts on
-   * today's local date in the user's current zone. Replacing an
-   * active target zeroes `completedDays` and `remainingReps` is
-   * recomputed from the new daily reps and duration.
+   * Set (or replace) the user's daily reps target. Starts on today's
+   * local date in the user's current zone. Replacing an active
+   * target zeroes `completedDays` and `remainingReps` is recomputed
+   * from the new daily reps and duration.
+   *
+   * The target is pinned to the push-up exercise today; when a
+   * second reps-based exercise ships, the request schema gains an
+   * optional `exerciseId` and this method honours it.
    */
   public async setDailyTarget(
     userId: string,
@@ -104,6 +117,7 @@ export class ProgressService {
     const updated: ProgressStateRecord = {
       ...stored,
       dailyTarget: {
+        exerciseId: DEFAULT_TARGET_EXERCISE_ID,
         repsPerDay: request.repsPerDay,
         durationDays: request.durationDays,
         startLocalDate,
@@ -142,14 +156,34 @@ export class ProgressService {
     if (!claimed) {
       return;
     }
+    const exercise = this.deps.exercises.get(event.kind);
     const stored = await this.ensureState(event.userId);
     const localDate = LocalDate.fromIsoUtc(event.loggedAt, stored.timeZone);
     const existingSummary =
       (await this.deps.progress.getDailySummary(event.userId, localDate)) ??
       this.freshSummary(event.userId, localDate);
-    const nextSummary = this.foldEventIntoSummary(existingSummary, event, stored);
-    const wasCounted = this.isCounted(existingSummary, stored.dailyTarget?.repsPerDay);
-    const nowCounted = this.isCounted(nextSummary, stored.dailyTarget?.repsPerDay);
+    const target = stored.dailyTarget;
+    const contributesToTarget = target !== null && target.exerciseId === event.kind;
+    const effort = ProgressService.toWorkoutEvent(event);
+    const repsForTarget = contributesToTarget
+      ? exercise.summaryContribution.repsTowardTarget(effort)
+      : 0;
+    const marksActive = exercise.summaryContribution.marksDayActive(effort);
+    const nextTargetReps = existingSummary.targetReps + repsForTarget;
+    const nextActivityCount = existingSummary.activityCount + (marksActive ? 1 : 0);
+    const wasTargetHit = existingSummary.targetHit;
+    const nowTargetHit =
+      wasTargetHit ||
+      (target !== null && contributesToTarget && nextTargetReps >= target.repsPerDay);
+    const nextSummary: DailySummaryRecord = {
+      userId: existingSummary.userId,
+      localDate: existingSummary.localDate,
+      targetReps: nextTargetReps,
+      activityCount: nextActivityCount,
+      targetHit: nowTargetHit,
+    };
+    const wasCounted = existingSummary.targetHit || existingSummary.activityCount > 0;
+    const nowCounted = nowTargetHit || nextActivityCount > 0;
 
     let nextState: ProgressStateRecord = stored;
 
@@ -169,10 +203,10 @@ export class ProgressService {
       await this.emitStreakEvents(event.userId, outcome);
     }
 
-    const dailyTargetHitThisEvent =
-      stored.dailyTarget !== null && nowCounted && !wasCounted && nextSummary.targetHit;
+    const dailyTargetHitThisEvent = nowTargetHit && !wasTargetHit;
     const bonusXp = dailyTargetHitThisEvent ? XpRules.DAILY_TARGET_BONUS_XP : 0;
-    const earnedXp = XpRules.baseXpForEvent(event) + bonusXp;
+    const baseXp = exercise.xpRule.baseXp(effort);
+    const earnedXp = baseXp + bonusXp;
     if (earnedXp > 0) {
       const previousLevel = XpRules.levelForXp(nextState.xp);
       const newXp = nextState.xp + earnedXp;
@@ -185,7 +219,12 @@ export class ProgressService {
 
     nextState = {
       ...nextState,
-      dailyTarget: this.applyDailyTarget(nextState.dailyTarget, event, dailyTargetHitThisEvent),
+      dailyTarget: this.applyDailyTarget(
+        nextState.dailyTarget,
+        event,
+        contributesToTarget,
+        dailyTargetHitThisEvent
+      ),
     };
 
     await this.deps.progress.putDailySummary(nextSummary);
@@ -215,57 +254,26 @@ export class ProgressService {
     return {
       userId,
       localDate,
-      pushupReps: 0,
-      setCount: 0,
+      targetReps: 0,
+      activityCount: 0,
       targetHit: false,
     };
-  }
-
-  private foldEventIntoSummary(
-    summary: DailySummaryRecord,
-    event: WorkoutLoggedV1Event.WorkoutLoggedV1,
-    state: ProgressStateRecord
-  ): DailySummaryRecord {
-    const pushupReps =
-      event.kind === 'pushup' ? summary.pushupReps + event.reps : summary.pushupReps;
-    const setCount = event.kind === 'set' ? summary.setCount + 1 : summary.setCount;
-    const target = state.dailyTarget?.repsPerDay;
-    const targetHit =
-      summary.targetHit ||
-      (target !== undefined && pushupReps >= target) ||
-      (target === undefined && setCount > 0);
-    return {
-      userId: summary.userId,
-      localDate: summary.localDate,
-      pushupReps,
-      setCount,
-      targetHit,
-    };
-  }
-
-  private isCounted(summary: DailySummaryRecord, repsTarget: number | undefined): boolean {
-    if (summary.setCount > 0) {
-      return true;
-    }
-    if (repsTarget === undefined) {
-      return false;
-    }
-    return summary.pushupReps >= repsTarget;
   }
 
   private applyDailyTarget(
     target: ProgressStateRecord['dailyTarget'],
     event: WorkoutLoggedV1Event.WorkoutLoggedV1,
+    contributesToTarget: boolean,
     completedToday: boolean
   ): ProgressStateRecord['dailyTarget'] {
     if (target === null) {
       return null;
     }
-    if (event.kind !== 'pushup') {
-      return completedToday ? { ...target, completedDays: target.completedDays + 1 } : target;
+    const completedDays = completedToday ? target.completedDays + 1 : target.completedDays;
+    if (!contributesToTarget) {
+      return completedToday ? { ...target, completedDays } : target;
     }
     const remainingReps = Math.max(0, target.remainingReps - event.reps);
-    const completedDays = completedToday ? target.completedDays + 1 : target.completedDays;
     return { ...target, remainingReps, completedDays };
   }
 
@@ -313,6 +321,14 @@ export class ProgressService {
       occurredAt: this.deps.clock.nowIso(),
     };
     await this.deps.events.publish(PROGRESS_LEVEL_UP_V1_DETAIL_TYPE, payload);
+  }
+
+  private static toWorkoutEvent(event: WorkoutLoggedV1Event.WorkoutLoggedV1): WorkoutEventLike {
+    return {
+      reps: event.reps,
+      ...(event.weightKg === undefined ? {} : { weightKg: event.weightKg }),
+      ...(event.durationSeconds === undefined ? {} : { durationSeconds: event.durationSeconds }),
+    };
   }
 
   private toApi(record: ProgressStateRecord): ProgressApi.ProgressState {

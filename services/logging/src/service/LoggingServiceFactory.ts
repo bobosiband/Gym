@@ -2,6 +2,8 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { EventBridgeClient } from '@aws-sdk/client-eventbridge';
 import { SSMClient } from '@aws-sdk/client-ssm';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import type { ExerciseRegistry } from '@gym/exercise-core';
+import { DefaultExerciseRegistryFactory } from '@gym/exercise-pushup';
 
 import type { LoggingConfig } from '../config/LoggingConfig.js';
 import { SsmConfigLoader } from '../config/SsmConfigLoader.js';
@@ -26,6 +28,7 @@ export interface LoggingRuntime {
   readonly verifier: JwtVerifier;
   readonly config: LoggingConfig;
   readonly env: Env;
+  readonly exercises: ExerciseRegistry;
 }
 
 /**
@@ -57,7 +60,8 @@ export class LoggingServiceFactory {
 
     const service = new LoggingService({ workouts, idempotency, events, clock, ids });
     const verifier = new JwksJwtVerifier(config.jwksUrl, config.issuer, config.audience);
+    const exercises = DefaultExerciseRegistryFactory.create();
 
-    return { service, verifier, config, env };
+    return { service, verifier, config, env, exercises };
   }
 }

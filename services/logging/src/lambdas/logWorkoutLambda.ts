@@ -10,6 +10,8 @@ export async function handler(
   event: APIGatewayProxyEventV2
 ): Promise<APIGatewayProxyStructuredResultV2> {
   return LambdaRuntime.handleHttp(event, async (runtime) => {
-    return new LogWorkoutHandler(runtime.service, runtime.verifier).handle(event);
+    return new LogWorkoutHandler(runtime.service, runtime.verifier, runtime.exercises).handle(
+      event
+    );
   });
 }

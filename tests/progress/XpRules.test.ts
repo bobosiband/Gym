@@ -1,17 +1,29 @@
+import { SetXpRule } from '@gym/exercise-core';
+import { PushupXpRule } from '@gym/exercise-pushup';
 import { describe, expect, it } from 'vitest';
 
 import { XpRules } from '../../services/progress/src/progress/XpRules.js';
 
-describe('XpRules.baseXpForEvent', () => {
+/**
+ * Per-event XP now lives on each exercise's own {@link XpRule}
+ * strategy, not on {@link XpRules}. These tests cover both sides of
+ * the split: the strategies score events, and {@link XpRules} owns
+ * only the level curve.
+ */
+describe('PushupXpRule.baseXp', () => {
   it('awards one XP per ten push-up reps', () => {
-    expect(XpRules.baseXpForEvent({ kind: 'pushup', reps: 100 })).toBe(10);
-    expect(XpRules.baseXpForEvent({ kind: 'pushup', reps: 9 })).toBe(0);
-    expect(XpRules.baseXpForEvent({ kind: 'pushup', reps: 25 })).toBe(2);
+    const rule = new PushupXpRule();
+    expect(rule.baseXp({ reps: 100 })).toBe(10);
+    expect(rule.baseXp({ reps: 9 })).toBe(0);
+    expect(rule.baseXp({ reps: 25 })).toBe(2);
   });
+});
 
-  it('awards a flat ten XP for a set-based workout', () => {
-    expect(XpRules.baseXpForEvent({ kind: 'set', reps: 1 })).toBe(10);
-    expect(XpRules.baseXpForEvent({ kind: 'set', reps: 100 })).toBe(10);
+describe('SetXpRule.baseXp', () => {
+  it('awards a flat ten XP for a resistance set regardless of reps', () => {
+    const rule = new SetXpRule();
+    expect(rule.baseXp({ reps: 1 })).toBe(10);
+    expect(rule.baseXp({ reps: 100 })).toBe(10);
   });
 });
 

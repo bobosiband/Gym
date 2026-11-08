@@ -1,3 +1,4 @@
+import type { ExerciseRegistry } from '@gym/exercise-core';
 import type { LoggingApi } from '@gym/contracts';
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 
@@ -23,7 +24,8 @@ import { HandlerSchemas } from './HandlerSchemas.js';
 export class LogWorkoutHandler {
   public constructor(
     private readonly service: LoggingService,
-    private readonly verifier: JwtVerifier
+    private readonly verifier: JwtVerifier,
+    private readonly exercises: ExerciseRegistry
   ) {}
 
   public async handle(event: APIGatewayProxyEventV2): Promise<APIGatewayProxyStructuredResultV2> {
@@ -44,6 +46,11 @@ export class LogWorkoutHandler {
 
     const parsed = HandlerBase.parseBodyOrFail(event, HandlerSchemas.logWorkout());
     if (!parsed.ok) return parsed.response;
+
+    if (!this.exercises.has(parsed.value.kind)) {
+      logger.warn('logWorkout rejected unknown exercise kind', { kind: parsed.value.kind });
+      return ApiErrors.badRequest(`unknown exercise kind: ${parsed.value.kind}`);
+    }
 
     const idempotency = HandlerBase.readIdempotencyKey(event);
     if (idempotency.kind === 'invalid') {

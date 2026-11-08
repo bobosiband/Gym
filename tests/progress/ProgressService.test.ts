@@ -52,6 +52,7 @@ describe('ProgressService.setDailyTarget', () => {
     await service.setTimeZone('u1', 'Australia/Sydney');
     const state = await service.setDailyTarget('u1', { repsPerDay: 100, durationDays: 30 });
     expect(state.dailyTarget).toEqual({
+      exerciseId: 'pushup',
       repsPerDay: 100,
       durationDays: 30,
       startLocalDate: '2026-11-02',

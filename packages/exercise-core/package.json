@@ -1,0 +1,24 @@
+{
+  "name": "@gym/exercise-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Pluggable Exercise abstraction plus a registry. Every exercise (push-up, set, future squat) is a strategy class that services and apps look up by id.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@gym/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.9"
+  }
+}

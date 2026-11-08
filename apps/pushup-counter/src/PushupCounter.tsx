@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-
-import { MediaPipePoseSource } from './MediaPipePoseSource.js';
-import type { PoseSource } from './PoseSource.js';
-import { PushupRepCounter } from './PushupRepCounter.js';
+import { RepCounter, type PoseSource } from '@gym/pose';
+import { MediaPipePoseSource } from '@gym/pose/browser';
+import { PushupRepDetector } from '@gym/exercise-pushup';
 
 /**
  * Props for {@link PushupCounter}.
@@ -22,12 +21,10 @@ type Status = 'idle' | 'starting' | 'running' | 'stopped' | 'error';
 
 /**
  * React widget that owns the camera, the pose source, and the rep
- * counter. The component exposes two buttons:
- *
- *  - Start: acquires the camera, loads the MediaPipe model, and
- *    begins feeding frames into {@link PushupRepCounter}.
- *  - Finish: stops the camera and calls `onComplete(count)` so the
- *    parent screen can POST the count to `services/logging`.
+ * counter. Wired to a {@link PushupRepDetector} today; Stage 3 adds
+ * a generic exercise-embed widget in `apps/web` that composes any
+ * registered {@link Exercise}'s detector with the same
+ * {@link RepCounter} machinery.
  *
  * The camera stream and inference stay local to the browser. The
  * parent only ever receives the final rep count.
@@ -35,7 +32,7 @@ type Status = 'idle' | 'starting' | 'running' | 'stopped' | 'error';
 export function PushupCounter(props: PushupCounterProps): JSX.Element {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const sourceRef = useRef<PoseSource | null>(null);
-  const counterRef = useRef<PushupRepCounter>(new PushupRepCounter());
+  const counterRef = useRef<RepCounter>(new RepCounter(new PushupRepDetector()));
   const [status, setStatus] = useState<Status>('idle');
   const [count, setCount] = useState<number>(0);
   const [angle, setAngle] = useState<number | null>(null);
@@ -64,7 +61,8 @@ export function PushupCounter(props: PushupCounterProps): JSX.Element {
       await source.start((landmarks) => {
         counterRef.current.processFrame(landmarks);
         setCount(counterRef.current.getCount());
-        setAngle(counterRef.current.getLastElbowAngle());
+        const observation = counterRef.current.getLastObservation();
+        setAngle(observation?.signalValue ?? null);
       });
       setStatus('running');
       props.onReady?.();
@@ -97,7 +95,7 @@ export function PushupCounter(props: PushupCounterProps): JSX.Element {
       <p className="pushup-stats">
         <strong aria-label="rep count">{count}</strong> reps
         {angle !== null ? (
-          <span className="pushup-angle"> | elbow {Math.round(angle)}°</span>
+          <span className="pushup-angle"> | elbow {Math.round(angle)} degrees</span>
         ) : null}
       </p>
       <video ref={videoRef} className="pushup-video" playsInline muted />
