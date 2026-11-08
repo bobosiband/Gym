@@ -1,3 +1,6 @@
+import type { ExerciseRegistry } from '@gym/exercise-core';
+import { DefaultExerciseRegistryFactory } from '@gym/exercise-pushup';
+
 import { LoggingService } from '../../../services/logging/src/service/LoggingService.js';
 
 import { CountingIdGenerator } from './CountingIdGenerator.js';
@@ -28,6 +31,7 @@ export interface TestHarness {
   readonly clock: FakeClock;
   readonly ids: CountingIdGenerator;
   readonly verifier: FakeJwtVerifier;
+  readonly exercises: ExerciseRegistry;
 }
 
 /**
@@ -41,8 +45,9 @@ export function buildLoggingService(): TestHarness {
   const clock = new FakeClock();
   const ids = new CountingIdGenerator();
   const verifier = new FakeJwtVerifier();
+  const exercises = DefaultExerciseRegistryFactory.create();
 
   const service = new LoggingService({ workouts, idempotency, events, clock, ids });
 
-  return { service, workouts, idempotency, events, clock, ids, verifier };
+  return { service, workouts, idempotency, events, clock, ids, verifier, exercises };
 }

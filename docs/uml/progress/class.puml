@@ -61,6 +61,25 @@ package "services/progress/src" {
   }
 }
 
+package "@gym/exercise-core" {
+  abstract class Exercise {
+    + id: string
+    + displayName: string
+    + xpRule: XpRule
+    + summaryContribution: SummaryContribution
+  }
+  interface XpRule
+  interface SummaryContribution
+  class ExerciseRegistry
+}
+
+package "@gym/exercise-pushup" {
+  class PushupExercise
+  class PushupXpRule
+  class PushupSummaryContribution
+  class DefaultExerciseRegistryFactory <<utility>>
+}
+
 GetProgressHandler --> ProgressService
 GetProgressHandler --> JwtVerifier
 SetTimeZoneHandler --> ProgressService
@@ -72,10 +91,18 @@ WorkoutLoggedConsumer --> ProgressService
 ProgressService --> ProgressRepository
 ProgressService --> ProcessedEventRepository
 ProgressService --> EventPublisher
+ProgressService --> ExerciseRegistry
 ProgressService --> XpRules
 ProgressService --> StreakRules
 ProgressService --> FreezeRules
 ProgressService --> LocalDate
+
+ExerciseRegistry --> Exercise
+PushupExercise --|> Exercise
+PushupXpRule ..|> XpRule
+PushupSummaryContribution ..|> SummaryContribution
+DefaultExerciseRegistryFactory --> ExerciseRegistry
+DefaultExerciseRegistryFactory --> PushupExercise
 
 DynamoProgressRepository ..|> ProgressRepository
 DynamoProcessedEventRepository ..|> ProcessedEventRepository

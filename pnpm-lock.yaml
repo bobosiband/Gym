@@ -44,6 +44,12 @@ importers:
       '@gym/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@gym/exercise-pushup':
+        specifier: workspace:*
+        version: link:../../packages/exercise-pushup
+      '@gym/pose':
+        specifier: workspace:*
+        version: link:../../packages/pose
       '@mediapipe/tasks-vision':
         specifier: ^0.10.17
         version: 0.10.35
@@ -191,6 +197,48 @@ importers:
         specifier: ^3.23.8
         version: 3.25.76
 
+  packages/exercise-core:
+    dependencies:
+      '@gym/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+    devDependencies:
+      typescript:
+        specifier: ^5.6.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@20.19.43)(jsdom@25.0.1)
+
+  packages/exercise-pushup:
+    dependencies:
+      '@gym/exercise-core':
+        specifier: workspace:*
+        version: link:../exercise-core
+      '@gym/pose':
+        specifier: workspace:*
+        version: link:../pose
+    devDependencies:
+      typescript:
+        specifier: ^5.6.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@20.19.43)(jsdom@25.0.1)
+
+  packages/pose:
+    dependencies:
+      '@mediapipe/tasks-vision':
+        specifier: ^0.10.17
+        version: 0.10.35
+    devDependencies:
+      typescript:
+        specifier: ^5.6.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.9
+        version: 2.1.9(@types/node@20.19.43)(jsdom@25.0.1)
+
   services/auth:
     dependencies:
       '@aws-sdk/client-dynamodb':
@@ -279,6 +327,12 @@ importers:
       '@gym/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@gym/exercise-core':
+        specifier: workspace:*
+        version: link:../../packages/exercise-core
+      '@gym/exercise-pushup':
+        specifier: workspace:*
+        version: link:../../packages/exercise-pushup
       jose:
         specifier: ^5.9.6
         version: 5.10.0
@@ -347,6 +401,12 @@ importers:
       '@gym/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@gym/exercise-core':
+        specifier: workspace:*
+        version: link:../../packages/exercise-core
+      '@gym/exercise-pushup':
+        specifier: workspace:*
+        version: link:../../packages/exercise-pushup
       jose:
         specifier: ^5.9.6
         version: 5.10.0

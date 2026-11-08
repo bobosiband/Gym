@@ -1,0 +1,25 @@
+{
+  "name": "@gym/exercise-pushup",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Push-up exercise strategy: the elbow-angle rep detector, the XP rule (1 XP per 10 reps), and the summary contribution that feeds a reps-based daily target.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src --max-warnings 0",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@gym/exercise-core": "workspace:*",
+    "@gym/pose": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.9"
+  }
+}

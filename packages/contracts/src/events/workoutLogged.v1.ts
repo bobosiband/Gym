@@ -23,11 +23,22 @@ import { z } from 'zod';
 export const WORKOUT_LOGGED_V1_DETAIL_TYPE = 'workout.logged.v1';
 
 /**
- * Allowed values for the `kind` field. A `set` is a resistance-training
- * entry (reps against a load) and a `pushup` is the body-weight count
- * produced by `apps/pushup-counter` when a session ends.
+ * Format of the `kind` field. The value is a registered exercise
+ * strategy id (for example `set`, `pushup`, or a future `squat`),
+ * resolved at runtime against the service's {@link ExerciseRegistry}
+ * in `@gym/exercise-core`. Unknown ids are rejected at the handler
+ * boundary with a 400, not by Zod, so adding a new exercise does not
+ * require a contract bump.
+ *
+ * The regex locks the shape to lower-case kebab-case so downstream
+ * services (event bus detail types, log tags, URL path segments)
+ * never have to escape the value.
  */
-export const workoutKindSchema = z.enum(['set', 'pushup']);
+export const workoutKindSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-z][a-z0-9-]*$/);
 
 /**
  * Detail payload for `workout.logged.v1`.

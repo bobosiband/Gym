@@ -78,8 +78,8 @@ export class DynamoProgressRepository implements ProgressRepository {
           sk: `DAY#${record.localDate}`,
           userId: record.userId,
           localDate: record.localDate,
-          pushupReps: record.pushupReps,
-          setCount: record.setCount,
+          targetReps: record.targetReps,
+          activityCount: record.activityCount,
           targetHit: record.targetHit,
         },
       })
@@ -109,8 +109,8 @@ export class DynamoProgressRepository implements ProgressRepository {
     return {
       userId: String(item['userId']),
       localDate: String(item['localDate']),
-      pushupReps: Number(item['pushupReps']),
-      setCount: Number(item['setCount']),
+      targetReps: Number(item['targetReps']),
+      activityCount: Number(item['activityCount']),
       targetHit: Boolean(item['targetHit']),
     };
   }

@@ -3,11 +3,7 @@ title Gym pushup-counter: core classes (Stage 2)
 
 skinparam shadowing false
 
-package "apps/pushup-counter/src" {
-  class ElbowAngle <<utility>> {
-    + {static} betweenShoulderElbowWrist(shoulder, elbow, wrist): number
-  }
-
+package "@gym/pose" {
   interface PoseLandmark
   enum PoseLandmarkIndex {
     LeftShoulder
@@ -16,6 +12,16 @@ package "apps/pushup-counter/src" {
     RightElbow
     LeftWrist
     RightWrist
+    LeftHip
+    RightHip
+    LeftKnee
+    RightKnee
+    LeftAnkle
+    RightAnkle
+  }
+
+  class PoseGeometry <<utility>> {
+    + {static} jointAngleDegrees(a, b, c): number
   }
 
   interface PoseSource {
@@ -23,20 +29,37 @@ package "apps/pushup-counter/src" {
     + stop(): Promise<void>
   }
 
-  class PushupRepCounter {
-    - options: PushupRepCounterOptions
-    - phase: PushupPhase
+  interface RepDetector {
+    + processFrame(landmarks): RepObservation
+    + reset(): void
+  }
+
+  class RepCounter {
     - count: number
+    + processFrame(landmarks): boolean
+    + getCount(): number
+    + getLastObservation(): RepObservation | null
+    + reset(): void
+  }
+
+  class MediaPipePoseSource <<browser>>
+}
+
+package "@gym/exercise-pushup" {
+  class PushupRepDetector
+  class PushupExercise
+  class PushupXpRule
+  class PushupSummaryContribution
+  class DefaultExerciseRegistryFactory <<utility>>
+}
+
+package "apps/pushup-counter/src" {
+  class PushupRepCounter <<facade>> {
     + processFrame(landmarks): boolean
     + getCount(): number
     + getPhase(): PushupPhase
     + getLastElbowAngle(): number | null
     + reset(): void
-  }
-
-  class MediaPipePoseSource {
-    + start(listener): Promise<void>
-    + stop(): Promise<void>
   }
 
   class PushupCounter <<React>> {
@@ -45,12 +68,16 @@ package "apps/pushup-counter/src" {
   }
 }
 
-PushupRepCounter ..> ElbowAngle
-PushupRepCounter ..> PoseLandmarkIndex
-PushupRepCounter ..> PoseLandmark
+RepCounter --> RepDetector
+PushupRepDetector ..|> RepDetector
+PushupRepDetector ..> PoseGeometry
+PushupRepDetector ..> PoseLandmarkIndex
+PushupRepCounter --> RepCounter
+PushupRepCounter --> PushupRepDetector
 MediaPipePoseSource ..|> PoseSource
 PushupCounter --> PoseSource
-PushupCounter --> PushupRepCounter
+PushupCounter --> RepCounter
+PushupCounter --> PushupRepDetector
 PushupCounter ..> MediaPipePoseSource
 
 @enduml

@@ -2,7 +2,7 @@ import {
   PoseLandmarkIndex,
   type PoseLandmark,
   type PoseLandmarks,
-} from '../../../apps/pushup-counter/src/PoseLandmark.js';
+} from '../../../packages/pose/src/PoseLandmark.js';
 
 /**
  * Build a 33-landmark MediaPipe-shaped frame with only the indices

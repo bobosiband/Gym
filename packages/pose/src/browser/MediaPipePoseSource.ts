@@ -4,15 +4,15 @@ import {
   type PoseLandmarkerResult,
 } from '@mediapipe/tasks-vision';
 
-import type { PoseFrameListener, PoseSource } from './PoseSource.js';
+import type { PoseFrameListener, PoseSource } from '../PoseSource.js';
 
 /**
  * Construction options for {@link MediaPipePoseSource}.
  *
- * The defaults point at the official MediaPipe CDN so the demo and
- * the embedded widget work out of the box with no additional
- * hosting. The vision model (`pose_landmarker_lite.task`) weighs ~4
- * MB and is cached by the browser once downloaded.
+ * The defaults point at the official MediaPipe CDN so the widget
+ * works out of the box with no additional hosting. The vision model
+ * (`pose_landmarker_lite.task`) weighs around 4 MB and is cached by
+ * the browser once downloaded.
  */
 export interface MediaPipePoseSourceOptions {
   readonly wasmBaseUrl: string;
@@ -24,20 +24,15 @@ const DEFAULT_WASM_BASE_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vis
 const DEFAULT_MODEL_ASSET_URL =
   'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task';
 
+type DefaultOptions = Pick<MediaPipePoseSourceOptions, 'wasmBaseUrl' | 'modelAssetUrl'>;
+
 /**
  * MediaPipe-backed implementation of {@link PoseSource}. Opens the
  * user's camera via `getUserMedia`, feeds every video frame through
  * the pose landmarker, and emits normalised landmarks to the
  * listener. The camera stream is never routed through the network;
  * all inference happens in-browser via a WASM runtime.
- *
- * This class is excluded from the Vitest run (the matching test file
- * uses a scripted stub instead) because wiring the full WASM + camera
- * stack in jsdom is not useful: the counting logic lives in
- * {@link PushupRepCounter}, which is fully tested in isolation.
  */
-type DefaultOptions = Pick<MediaPipePoseSourceOptions, 'wasmBaseUrl' | 'modelAssetUrl'>;
-
 export class MediaPipePoseSource implements PoseSource {
   public static readonly defaults: DefaultOptions = {
     wasmBaseUrl: DEFAULT_WASM_BASE_URL,
