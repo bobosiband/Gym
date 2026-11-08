@@ -29,7 +29,7 @@ export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
 export class FetchHttpClient {
   private readonly fetchFn: FetchLike;
 
-  public constructor(fetchFn: FetchLike = fetch) {
+  public constructor(fetchFn: FetchLike = (input, init) => fetch(input, init)) {
     this.fetchFn = fetchFn;
   }
 

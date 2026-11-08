@@ -114,6 +114,16 @@ Every suite passes locally against `main`. CI (`pnpm run lint`, `pnpm run lint:f
 3. **The achievements service is not actually receiving events.** `/events` works end-to-end for a hand-crafted POST but the EventBridge bridge is not wired. Any badge unlocks require either item 3 in the previous section or a manual POST through `curl`.
 4. **Push-up counter widget in `apps/pushup-counter` is now a facade.** The React component there still works but points at `@gym/pose` internals; if a future redesign of `apps/web` wants the camera widget directly, the compat facade in `apps/pushup-counter` can be deleted in one commit.
 
+## Bug fix after deploy: web client could not reach the backend
+
+`apps/web/src/api/FetchHttpClient.ts` captured the global `fetch` as a default constructor argument and invoked it as `this.fetchFn(...)`. In a browser that throws `TypeError: Illegal invocation` because `fetch` requires `this === window`, so no request ever left the page and sign-up and login rendered the generic connection error. The unit tests all inject a stub `fetch` and so never exercised the default-argument path.
+
+Fix: default the constructor argument to `(input, init) => fetch(input, init)` so the global keeps its correct binding. Added a regression test that swaps `globalThis.fetch` for a function that rejects any non-global `this`, then builds `FetchHttpClient()` with no args and asserts the request succeeds. `apps/web` test count ticks from 33 to 34 (total 372).
+
+Audited the rest of the repo for the same anti-pattern. The only other candidate is `services/catalogue/scripts/WgerImporter.ts`, which is a Node CLI script; Node's `fetch` does not enforce the window-`this` check, so no change there. No `setTimeout`, `setInterval`, `localStorage`, `sessionStorage`, `navigator`, `indexedDB`, or `console` handles are stored as bound fields anywhere in browser code.
+
+Also stopped swallowing errors in every screen that falls back to a generic connection message. Each catch now logs the original `err` with `console.error` before setting the user-facing message: `LoginScreen`, `RegisterScreen`, `HistoryScreen`, `ResetPasswordScreen`, `VerifyEmailNoticeScreen`, `VerifyEmailConfirmScreen`, `LogWorkoutScreen` (three catch sites), `ForgotPasswordScreen`. No passwords, tokens or request bodies are in scope at those catch sites, so the log is safe.
+
 ## Free-tier status
 
 Every service is inside the free tier on its platform:

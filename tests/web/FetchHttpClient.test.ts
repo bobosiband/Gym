@@ -68,4 +68,32 @@ describe('FetchHttpClient', () => {
       (e: unknown) => e instanceof HttpError && (e as HttpError).status === 500
     );
   });
+
+  it('calls the global fetch with a binding the browser accepts', async () => {
+    const originalFetch = globalThis.fetch;
+    try {
+      const boundAware: typeof fetch = async function (
+        this: unknown,
+        _input: string | URL | Request,
+        _init?: RequestInit
+      ): Promise<Response> {
+        if (this !== undefined && this !== globalThis) {
+          throw new TypeError('Illegal invocation');
+        }
+        return new Response('{"ok":true}', {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      };
+      globalThis.fetch = boundAware;
+      const client = new FetchHttpClient();
+      const result = await client.request<{ ok: boolean }>({
+        method: 'GET',
+        url: 'https://api/example',
+      });
+      expect(result.ok).toBe(true);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });

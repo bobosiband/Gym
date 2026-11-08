@@ -35,6 +35,7 @@ export function RegisterScreen(): JSX.Element {
         await authApi.register(email, password);
         navigator.navigate(`/verify-email?email=${encodeURIComponent(email)}`);
       } catch (err) {
+        console.error(err);
         setError(describeError(err));
       } finally {
         setSubmitting(false);

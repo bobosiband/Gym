@@ -32,6 +32,7 @@ export function VerifyEmailNoticeScreen(props: VerifyEmailNoticeScreenProps): JS
       await authApi.resendVerification(props.email);
       setStatus('sent');
     } catch (err) {
+      console.error(err);
       setStatus('error');
       setMessage(err instanceof HttpError ? err.serverMessage : 'Could not resend.');
     }

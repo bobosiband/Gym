@@ -35,6 +35,7 @@ export function VerifyEmailConfirmScreen(props: VerifyEmailConfirmScreenProps): 
         }
       })
       .catch((err: unknown) => {
+        console.error(err);
         if (cancelled) {
           return;
         }
