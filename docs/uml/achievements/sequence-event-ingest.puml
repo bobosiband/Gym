@@ -1,0 +1,34 @@
+@startuml
+title Gym achievements: event ingestion (POST /events)
+
+actor "EventBridge forwarder" as EB
+participant "AchievementsWorker" as W
+participant "Router" as R
+participant "AchievementHandlers" as H
+participant "AchievementService" as S
+participant "ProcessedEventRepository" as P
+participant "AchievementRepository" as REPO
+participant "BadgeRegistry" as B
+participant "EventPublisher" as PUB
+
+EB -> W: POST /events\nX-Internal-Events-Key\n{ "detail-type": "workout.logged.v1", detail: {...} }
+W -> R: route(request)
+R -> H: handleEventWebhook(request)
+H -> H: check shared secret
+H -> H: parse envelope + validate detail (Zod)
+H -> S: handleWorkoutLogged(detail)
+S -> P: tryClaim(eventId)
+alt claim fresh
+    S -> REPO: getSnapshot(userId)
+    S -> REPO: putSnapshot(nextSnapshot)
+    S -> B: list()
+    loop each badge rule
+        S -> REPO: insertAchievementIfAbsent(record)
+        alt inserted
+            S -> PUB: publish(achievement.unlocked.v1)
+        end
+    end
+end
+W --> EB: 204
+
+@enduml

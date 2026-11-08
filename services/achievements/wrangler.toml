@@ -1,0 +1,28 @@
+name = "gym-achievements"
+main = "src/index.ts"
+compatibility_date = "2025-10-15"
+compatibility_flags = ["nodejs_compat"]
+
+[observability]
+enabled = true
+
+[vars]
+# CORS allow list. `*` is permitted during early frontend bring-up
+# per the owner's 2026-10-29 policy (see CLAUDE.md rule 15). Override
+# per environment with:
+#   wrangler deploy --var ALLOWED_ORIGINS:"https://example.com"
+ALLOWED_ORIGINS = "*"
+
+# Auth JWT settings. Verified via the auth service's remote JWKS at
+# JWKS_URL (cached for 10 minutes). INTERNAL_EVENTS_KEY is a shared
+# secret for the internal /events webhook; set it with:
+#   wrangler secret put INTERNAL_EVENTS_KEY
+JWT_ISSUER = "https://auth.gym.local/ap-southeast-2"
+JWT_AUDIENCE = "gym-api"
+JWKS_URL = "https://7g4ap69dgh.execute-api.ap-southeast-2.amazonaws.com/.well-known/jwks.json"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gym-achievements"
+database_id = "PLACEHOLDER_TO_BE_FILLED_IN_AFTER_wrangler_d1_create"
+migrations_dir = "migrations"

@@ -1,0 +1,92 @@
+@startuml
+title Gym achievements: core classes (Stage 3)
+
+skinparam shadowing false
+
+package "services/achievements/src" {
+  class AchievementsWorker <<worker>>
+  class Router
+  class HealthHandler <<utility>>
+
+  package "http" {
+    class ApiErrors <<utility>>
+    class JsonResponder <<utility>>
+    class Cors <<utility>>
+  }
+
+  package "tokens" {
+    interface JwtVerifier
+    class JwksJwtVerifier
+  }
+
+  package "achievements" {
+    class AchievementService {
+      + listAchievements(userId): Promise<Achievement[]>
+      + handleWorkoutLogged(event): Promise<AchievementRecord[]>
+      + handleProgressLevelUp(event): Promise<AchievementRecord[]>
+    }
+    class AchievementHandlers {
+      + handleListAchievements(request): Promise<Response>
+      + handleEventWebhook(request): Promise<Response>
+    }
+    interface AchievementRepository
+    interface ProcessedEventRepository
+    class D1AchievementRepository
+    class D1ProcessedEventRepository
+    interface Clock
+    class SystemClock
+    interface IdGenerator
+    class CryptoIdGenerator
+    class LocalDate <<utility>>
+  }
+
+  package "badges" {
+    interface BadgeRule
+    class BadgeRegistry
+    class FirstWorkoutBadge
+    class TotalReps100Badge
+    class SevenDayStreakBadge
+    class Level5Badge
+    class DefaultBadgeRegistryFactory <<factory>>
+  }
+
+  package "events" {
+    interface EventPublisher
+    class LoggingEventPublisher
+  }
+}
+
+Router --> AchievementHandlers
+Router --> AchievementService
+Router --> BadgeRegistry
+Router --> JwtVerifier
+
+AchievementHandlers --> AchievementService
+AchievementHandlers --> JwtVerifier
+
+AchievementService --> AchievementRepository
+AchievementService --> ProcessedEventRepository
+AchievementService --> BadgeRegistry
+AchievementService --> EventPublisher
+AchievementService --> Clock
+AchievementService --> IdGenerator
+AchievementService --> LocalDate
+
+D1AchievementRepository ..|> AchievementRepository
+D1ProcessedEventRepository ..|> ProcessedEventRepository
+JwksJwtVerifier ..|> JwtVerifier
+SystemClock ..|> Clock
+CryptoIdGenerator ..|> IdGenerator
+LoggingEventPublisher ..|> EventPublisher
+
+FirstWorkoutBadge ..|> BadgeRule
+TotalReps100Badge ..|> BadgeRule
+SevenDayStreakBadge ..|> BadgeRule
+Level5Badge ..|> BadgeRule
+DefaultBadgeRegistryFactory --> BadgeRegistry
+DefaultBadgeRegistryFactory ..> FirstWorkoutBadge
+DefaultBadgeRegistryFactory ..> TotalReps100Badge
+DefaultBadgeRegistryFactory ..> SevenDayStreakBadge
+DefaultBadgeRegistryFactory ..> Level5Badge
+
+@enduml
