@@ -24,5 +24,5 @@ JWKS_URL = "https://7g4ap69dgh.execute-api.ap-southeast-2.amazonaws.com/.well-kn
 [[d1_databases]]
 binding = "DB"
 database_name = "gym-achievements"
-database_id = "PLACEHOLDER_TO_BE_FILLED_IN_AFTER_wrangler_d1_create"
+database_id = "32878df7-af08-4c4e-b228-6d590485d526"
 migrations_dir = "migrations"

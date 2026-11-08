@@ -11,10 +11,14 @@ import type { ProgressConfig } from './ProgressConfig.js';
  * `${SSM_PARAM_PREFIX}/app/origins` (per-service CORS allow list).
  */
 export class SsmConfigLoader {
+  private readonly paramPrefix: string;
+
   public constructor(
     private readonly ssm: SSMClient,
-    private readonly paramPrefix: string
-  ) {}
+    paramPrefix: string
+  ) {
+    this.paramPrefix = paramPrefix.endsWith('/') ? paramPrefix.slice(0, -1) : paramPrefix;
+  }
 
   public async load(): Promise<ProgressConfig> {
     const names = [
