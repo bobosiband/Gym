@@ -25,6 +25,7 @@ export function LoginScreen(): JSX.Element {
         session.login(tokens);
         navigator.replace('/');
       } catch (err) {
+        console.error(err);
         setError(describeError(err));
       } finally {
         setSubmitting(false);

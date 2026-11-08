@@ -15,8 +15,16 @@ package "apps/web/src" {
 
   package "api" {
     class FetchHttpClient {
+      + FetchHttpClient(fetchFn?: FetchLike)
       + request<T>(options): Promise<T>
     }
+    note right of FetchHttpClient
+      Default `fetchFn` is an arrow wrapper
+      `(input, init) => fetch(input, init)` so
+      the global `fetch` keeps its window-`this`
+      binding in the browser. A bare `fetch`
+      default throws `TypeError: Illegal invocation`.
+    end note
     class HttpError
     class AuthApiClient {
       + register(email, password): Promise<RegisterResponse>

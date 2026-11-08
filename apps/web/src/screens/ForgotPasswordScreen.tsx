@@ -23,6 +23,7 @@ export function ForgotPasswordScreen(): JSX.Element {
         await authApi.forgotPassword(email);
         setState('sent');
       } catch (err) {
+        console.error(err);
         setState('error');
         setError(err instanceof HttpError ? err.serverMessage : 'Request failed.');
       }

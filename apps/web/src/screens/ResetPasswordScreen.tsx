@@ -43,6 +43,7 @@ export function ResetPasswordScreen(props: ResetPasswordScreenProps): JSX.Elemen
         await authApi.resetPassword(props.token, password);
         navigator.replace('/login');
       } catch (err) {
+        console.error(err);
         setError(
           err instanceof HttpError && err.serverMessage.length > 0
             ? err.serverMessage

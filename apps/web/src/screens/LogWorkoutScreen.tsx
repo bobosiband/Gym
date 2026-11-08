@@ -51,6 +51,7 @@ export function LogWorkoutScreen(): JSX.Element {
         }
       })
       .catch((err: unknown) => {
+        console.error(err);
         if (cancelled) {
           return;
         }
@@ -83,6 +84,7 @@ export function LogWorkoutScreen(): JSX.Element {
         );
         navigator.navigate('/history');
       } catch (err) {
+        console.error(err);
         setSubmitError(
           err instanceof HttpError && err.serverMessage.length > 0
             ? err.serverMessage
@@ -132,6 +134,7 @@ export function LogWorkoutScreen(): JSX.Element {
         );
         navigator.navigate('/history');
       } catch (err) {
+        console.error(err);
         setSubmitError(
           err instanceof HttpError && err.serverMessage.length > 0
             ? err.serverMessage

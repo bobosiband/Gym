@@ -33,6 +33,7 @@ export function HistoryScreen(): JSX.Element {
         );
         setCursor(response.cursor ?? null);
       } catch (err) {
+        console.error(err);
         setError(
           err instanceof HttpError && err.serverMessage.length > 0
             ? err.serverMessage
