@@ -135,6 +135,77 @@ Every service listed below is a bounded context. Each owns its own data store an
 - **Events in.** `workout.logged`.
 - **Events out.** None.
 
+## Design patterns in use
+
+Every service and app in this repo is written against the following patterns. New behaviour is added as a new class in a new file; existing working code is not edited to extend it (open/closed). This section is the reviewer's map: before changing a file, read the row here to see what the file is playing in the design.
+
+### Strategy
+
+Pluggable rules selected at runtime by a key rather than by a type switch. Adding a new variant is a new file, never an edit.
+
+- `services/progress/src/progress/XpRules.ts`, `FreezeRules.ts`, `StreakRules.ts`: each pure-function class is a self-contained scoring strategy. The service composes them per event. Per-exercise XP rules move behind `ExerciseRegistry` in Stage 3b (see `packages/exercise-core`).
+- `services/achievements/src/badges/*Rule.ts`: each badge is a `BadgeRule` strategy evaluated against the user's rolling snapshot. Adding "100 total squats" is a new file in `badges/`, never a branch inside a god method.
+- `apps/pushup-counter/src/PushupRepCounter.ts` becomes a `RepCounter` driven by a `RepDetector` strategy once `packages/exercise-core` lands; the push-up detector moves to `packages/exercise-pushup`.
+
+### Registry / Factory
+
+A small lookup table that maps a stable string id to a strategy instance, with a factory responsible for seeding the default set. Keeps call sites ignorant of the concrete types.
+
+- `packages/exercise-core/src/ExerciseRegistry.ts` (Stage 3b): maps `exerciseId` to an `Exercise` with its rep detector, XP rule and target rule. `ExerciseRegistryFactory` seeds the default registry. Tests register test-only exercises without touching the factory, proving open/closed.
+- `services/achievements/src/badges/BadgeRegistry.ts`: holds every `BadgeRule`. The consumer evaluates them in order on every event.
+
+### Repository (Ports and Adapters)
+
+A pure-domain interface in the service's domain folder, with the infrastructure driver in the same folder. The service depends only on the interface; tests swap in an in-memory fake.
+
+- `services/logging/src/workouts/{WorkoutRepository,DynamoWorkoutRepository}.ts`
+- `services/logging/src/idempotency/{IdempotencyRepository,DynamoIdempotencyRepository}.ts`
+- `services/progress/src/progress/{ProgressRepository,DynamoProgressRepository,DynamoProcessedEventRepository}.ts`
+- `services/catalogue/src/exercises/{ExerciseRepository,D1ExerciseRepository}.ts`
+- `services/media/src/media/{MediaRepository,R2MediaRepository}.ts`
+- `services/achievements/src/achievements/{AchievementRepository,D1AchievementRepository}.ts`
+- `services/auth/src/users/{UserRepository,...}`, `services/auth/src/sessions/{SessionRepository,...}`
+
+### Adapter
+
+Infrastructure wrapper that keeps a third-party SDK or primitive at the edge so the core never imports the SDK.
+
+- `services/*/src/events/{EventPublisher,EventBridgeEventPublisher}.ts` wraps `@aws-sdk/client-eventbridge`.
+- `services/auth/src/mail/{Mailer,NodemailerMailer}.ts` wraps Gmail SMTP.
+- `services/*/src/util/{Clock,SystemClock}.ts` and `{IdGenerator,UuidIdGenerator}.ts` keep `Date.now()` and `randomUUID()` out of domain code so tests get a deterministic clock.
+- `services/*/src/tokens/{JwtVerifier,JwksJwtVerifier}.ts` wraps `jose`.
+- `apps/pushup-counter/src/MediaPipePoseSource.ts` implements `PoseSource` on top of `@mediapipe/tasks-vision`.
+- `apps/web/src/api/FetchHttpClient.ts` implements `HttpClient` on top of `fetch`.
+
+### Observer (via versioned events)
+
+Cross-service communication is strictly asynchronous via `@gym/contracts` event schemas on EventBridge. No service imports another's domain code; subscribers are observers on the bus.
+
+- `services/logging` publishes `workout.logged.v1`.
+- `services/progress` observes `workout.logged.v1`; publishes `progress.level_up.v1`, `streak.broken.v1`, `streak.frozen.v1`.
+- `services/achievements` observes `workout.logged.v1` and `progress.level_up.v1`; publishes `achievement.unlocked.v1`.
+
+### Dependency Injection
+
+Every service class takes its collaborators through its constructor as a `Deps` interface. Nothing calls `new` on its own collaborators except at the composition root (the per-lambda runtime factory or `*Worker.ts` entry point).
+
+- `ProgressService`, `LoggingService`, `AuthService`: all take a `Deps` object.
+- Composition roots: `services/progress/src/service/ProgressRuntimeFactory.ts`, `services/logging/src/service/LoggingServiceFactory.ts`, `services/auth/src/service/AuthServiceFactory.ts`, `services/catalogue/src/CatalogueWorker.ts`, `services/media/src/MediaWorker.ts`, `services/achievements/src/AchievementsWorker.ts`.
+
+### Layering (domain / handler / lambda-or-worker)
+
+Every TS service is three layers:
+
+1. **Domain** (`service/`, plus whatever folders the bounded context needs). Pure code. Takes repositories and adapters through interfaces.
+2. **Handler** (`handlers/`). One class per endpoint. Reads headers, validates with Zod, maps service errors to HTTP responses, returns `APIGatewayProxyStructuredResultV2`.
+3. **Lambda or Worker entry** (`lambdas/` on AWS, `*Worker.ts` on Cloudflare). Wires the composition root once per cold start and dispatches to the handler.
+
+No handler calls an SDK directly; no domain class returns an HTTP response. The folder tree is the design.
+
+### Known violation to be fixed
+
+The `workoutKindSchema` in `packages/contracts/src/events/workoutLogged.v1.ts` is a closed enum of `['set', 'pushup']`. `ProgressService.foldEventIntoSummary` and `XpRules.baseXpForEvent` branch on this enum. That is a type switch standing in for a strategy. The fix is `packages/exercise-core` (new abstraction) plus `packages/exercise-pushup` (first strategy) plus a loosened schema that validates against the registry. See `docs/roadmap.md` and the upcoming `bongani/exercise-model` PR.
+
 ## Planned features
 
 The living backlog of planned features, which service owns each one, and the events they will consume or emit lives in `docs/roadmap.md`. Add rows there before any new feature work starts.
