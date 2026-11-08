@@ -29,6 +29,8 @@ import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { StringParameter } from 'aws-cdk-lib/aws-ssm';
 import type { Construct } from 'constructs';
 
+import { AppPublicUrl } from './AppPublicUrl.js';
+
 /**
  * CDK stack for the auth service.
  *
@@ -67,8 +69,9 @@ export class AuthStack extends Stack {
     const issuer = `https://auth.gym.local/${this.region}`;
 
     const appOrigin = this.resolveFirstAppOrigin();
-    const verifyUrl = `${appOrigin}/${AuthStack.VERIFY_URL_PATH}`;
-    const resetUrl = `${appOrigin}/${AuthStack.RESET_URL_PATH}`;
+    const appPublicUrl = AppPublicUrl.resolve(process.env['APP_PUBLIC_URL']);
+    const verifyUrl = `${appPublicUrl}/${AuthStack.VERIFY_URL_PATH}`;
+    const resetUrl = `${appPublicUrl}/${AuthStack.RESET_URL_PATH}`;
 
     const commonEnvironment: Record<string, string> = {
       USERS_TABLE: usersTable.tableName,

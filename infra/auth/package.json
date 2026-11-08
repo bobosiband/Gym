@@ -7,6 +7,7 @@
   "scripts": {
     "lint": "eslint bin lib --max-warnings 0",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "synth": "cdk synth --app \"npx tsx bin/auth.ts\"",
     "diff": "cdk diff --app \"npx tsx bin/auth.ts\"",
     "deploy": "cdk deploy --require-approval never --app \"npx tsx bin/auth.ts\""
@@ -20,6 +21,7 @@
     "aws-cdk": "^2.158.0",
     "esbuild": "^0.24.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.9"
   }
 }
