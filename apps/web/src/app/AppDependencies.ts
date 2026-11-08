@@ -3,6 +3,7 @@ import type { CatalogueApiClient } from '../api/CatalogueApiClient.js';
 import type { LoggingApiClient } from '../api/LoggingApiClient.js';
 import type { AuthorizedRequest } from '../auth/AuthorizedRequest.js';
 import type { SessionManager } from '../auth/SessionManager.js';
+import type { ExerciseCounterRegistry } from '../counters/ExerciseCounterRegistry.js';
 import type { Navigator as AppNavigator } from '../routing/Navigator.js';
 
 /**
@@ -19,4 +20,5 @@ export interface AppDependencies {
   readonly authorized: AuthorizedRequest;
   readonly navigator: AppNavigator;
   readonly newIdempotencyKey: () => string;
+  readonly exerciseCounters: ExerciseCounterRegistry;
 }

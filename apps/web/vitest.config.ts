@@ -12,6 +12,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     include: ['../../tests/web/**/*.test.ts', '../../tests/web/**/*.test.tsx'],
+    setupFiles: ['../../tests/web/support/setupReactAct.ts'],
     globals: false,
   },
 });

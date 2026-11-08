@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { HttpError } from '../api/HttpError.js';
 import { useAppDependencies } from '../app/AppContext.js';
+import { ExerciseCounter } from '../counters/ExerciseCounter.js';
 
 type Kind = LoggingApi.LogWorkoutRequest['kind'];
 
@@ -12,13 +13,16 @@ type Kind = LoggingApi.LogWorkoutRequest['kind'];
  * and POSTs to the logging API with a client-generated idempotency
  * key so a double-tap on the submit button is safe.
  *
- * This screen handles manual "set" and "pushup" entries. The
- * MediaPipe-driven push-up counter in `apps/pushup-counter` will be
- * embedded here in a later commit; its final count flows through the
- * same POST path.
+ * When the selected `kind` has an on-device counter registered in
+ * {@link AppDependencies.exerciseCounters} (push-ups today), a
+ * "Count with camera" control toggles the lazy-loaded
+ * {@link ExerciseCounter}. The counter runs entirely in the browser;
+ * only the final rep count hits {@link loggingApi.logWorkout}. The
+ * manual rep form remains the primary path and is still available
+ * if the user denies the camera or opts out.
  */
 export function LogWorkoutScreen(): JSX.Element {
-  const { authorized, catalogueApi, loggingApi, navigator, newIdempotencyKey } =
+  const { authorized, catalogueApi, exerciseCounters, loggingApi, navigator, newIdempotencyKey } =
     useAppDependencies();
 
   const [exercises, setExercises] = useState<readonly CatalogueApi.Exercise[]>([]);
@@ -31,6 +35,7 @@ export function LogWorkoutScreen(): JSX.Element {
   const [durationSeconds, setDurationSeconds] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [cameraOpen, setCameraOpen] = useState<boolean>(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,6 +67,33 @@ export function LogWorkoutScreen(): JSX.Element {
       cancelled = true;
     };
   }, [catalogueApi, exerciseId.length]);
+
+  const submitReps = useCallback(
+    async (finalReps: number): Promise<void> => {
+      const request: LoggingApi.LogWorkoutRequest = {
+        exerciseId,
+        kind,
+        reps: finalReps,
+      };
+      setSubmitError(null);
+      setSubmitting(true);
+      try {
+        await authorized.run((accessToken) =>
+          loggingApi.logWorkout({ request, accessToken, idempotencyKey: newIdempotencyKey() })
+        );
+        navigator.navigate('/history');
+      } catch (err) {
+        setSubmitError(
+          err instanceof HttpError && err.serverMessage.length > 0
+            ? err.serverMessage
+            : 'Could not log workout. Try again in a moment.'
+        );
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [authorized, exerciseId, kind, loggingApi, navigator, newIdempotencyKey]
+  );
 
   const onSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
@@ -122,6 +154,8 @@ export function LogWorkoutScreen(): JSX.Element {
     ]
   );
 
+  const cameraAvailable = exerciseCounters.has(kind);
+
   return (
     <section aria-labelledby="log-workout-title">
       <h1 id="log-workout-title">Log a workout</h1>
@@ -150,11 +184,23 @@ export function LogWorkoutScreen(): JSX.Element {
         </label>
         <label>
           Kind
-          <select name="kind" value={kind} onChange={(e) => setKind(e.target.value as Kind)}>
+          <select
+            name="kind"
+            value={kind}
+            onChange={(e) => {
+              setKind(e.target.value as Kind);
+              setCameraOpen(false);
+            }}
+          >
             <option value="set">Set</option>
             <option value="pushup">Push-up count</option>
           </select>
         </label>
+        {cameraAvailable && !cameraOpen ? (
+          <button type="button" onClick={() => setCameraOpen(true)}>
+            Count with camera
+          </button>
+        ) : null}
         <label>
           Reps
           <input
@@ -203,6 +249,20 @@ export function LogWorkoutScreen(): JSX.Element {
           {submitting ? 'Saving...' : 'Save workout'}
         </button>
       </form>
+      {cameraAvailable && cameraOpen ? (
+        <ExerciseCounter
+          exerciseKind={kind}
+          registry={exerciseCounters}
+          onComplete={(finalReps) => {
+            setCameraOpen(false);
+            if (finalReps > 0) {
+              setReps(String(finalReps));
+              void submitReps(finalReps);
+            }
+          }}
+          onCancel={() => setCameraOpen(false)}
+        />
+      ) : null}
     </section>
   );
 }
