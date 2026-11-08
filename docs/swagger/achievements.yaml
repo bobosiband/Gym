@@ -1,0 +1,138 @@
+openapi: 3.1.0
+info:
+  title: Gym Achievements API
+  version: '1.0'
+  description: |
+    HTTP surface for `services/achievements`. Authenticated GET for a
+    user's unlocked badges; an internal POST webhook that accepts
+    EventBridge-shaped envelopes forwarded from `services/logging`
+    and `services/progress`.
+servers:
+  - url: https://gym-achievements.bobosibanda35.workers.dev
+    description: Production Worker
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    internalKey:
+      type: apiKey
+      in: header
+      name: X-Internal-Events-Key
+  schemas:
+    Achievement:
+      type: object
+      additionalProperties: false
+      required: [badgeId, name, description, unlockedAt]
+      properties:
+        badgeId:
+          type: string
+          minLength: 1
+          maxLength: 64
+          example: first-workout
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        description:
+          type: string
+          minLength: 1
+          maxLength: 500
+        unlockedAt:
+          type: string
+          format: date-time
+    ListAchievementsResponse:
+      type: object
+      additionalProperties: false
+      required: [achievements]
+      properties:
+        achievements:
+          type: array
+          items:
+            $ref: '#/components/schemas/Achievement'
+    AchievementsApiError:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum:
+            - BAD_REQUEST
+            - UNAUTHORIZED
+            - FORBIDDEN
+            - NOT_FOUND
+            - METHOD_NOT_ALLOWED
+            - INTERNAL
+        message:
+          type: string
+    EventEnvelope:
+      type: object
+      additionalProperties: true
+      required: [detail-type, detail]
+      properties:
+        detail-type:
+          type: string
+          enum: [workout.logged.v1, progress.level_up.v1]
+        detail:
+          type: object
+paths:
+  /health:
+    get:
+      summary: Liveness probe
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /achievements:
+    get:
+      summary: List the caller's unlocked badges
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListAchievementsResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementsApiError'
+  /events:
+    post:
+      summary: Internal webhook for EventBridge-forwarded events
+      security:
+        - internalKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventEnvelope'
+      responses:
+        '204':
+          description: Event accepted
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementsApiError'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AchievementsApiError'

@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "types": ["@cloudflare/workers-types", "@cloudflare/vitest-pool-workers", "node"],
+    "noEmit": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "../../tests/achievements/**/*.ts",
+    "../../tests/achievements/**/*.d.ts"
+  ],
+  "exclude": ["dist", "node_modules"]
+}
