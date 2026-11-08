@@ -96,7 +96,15 @@ package "apps/web/src" {
   }
 
   package "sw" {
-    class ServiceWorker <<worker>>
+    class ServiceWorker <<worker>> {
+      - CACHE_NAME: string
+      + onInstall(): void
+      + onActivate(): void
+      + onFetch(event): void
+    }
+    class registerServiceWorker <<utility>> {
+      + reload once on controllerchange
+    }
   }
 }
 
