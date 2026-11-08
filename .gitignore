@@ -68,3 +68,4 @@ Thumbs.db
 # PlantUML scratch
 .plantuml-cache/
 *.puml.svg.tmp
+.vercel
