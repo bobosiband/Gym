@@ -106,6 +106,25 @@ package "apps/web/src" {
       + reload once on controllerchange
     }
   }
+
+  package "counters" {
+    interface ExerciseCounterComponent {
+      + onComplete(reps): void
+      + onCancel?(): void
+      + onError?(error): void
+    }
+    class ExerciseCounterRegistry {
+      + register(kind, component): void
+      + get(kind): LazyComponent | null
+      + has(kind): boolean
+    }
+    class ExerciseCounter <<React>> {
+      + exerciseKind: string
+      + registry: ExerciseCounterRegistry
+    }
+    class PushupExerciseCounter <<React,lazy>>
+    class DefaultExerciseCounterRegistryFactory <<factory>>
+  }
 }
 
 AuthApiClient --> FetchHttpClient
@@ -132,7 +151,15 @@ LogWorkoutScreen ..> AuthorizedRequest
 LogWorkoutScreen ..> LoggingApiClient
 LogWorkoutScreen ..> CatalogueApiClient
 LogWorkoutScreen ..> IdempotencyKey
+LogWorkoutScreen --> ExerciseCounter
+LogWorkoutScreen --> ExerciseCounterRegistry
 HistoryScreen ..> AuthorizedRequest
 HistoryScreen ..> LoggingApiClient
+
+ExerciseCounter --> ExerciseCounterRegistry
+ExerciseCounterRegistry --> ExerciseCounterComponent
+PushupExerciseCounter ..|> ExerciseCounterComponent
+DefaultExerciseCounterRegistryFactory --> ExerciseCounterRegistry
+DefaultExerciseCounterRegistryFactory ..> PushupExerciseCounter
 
 @enduml

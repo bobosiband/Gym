@@ -12,6 +12,7 @@ import { AuthorizedRequest } from './auth/AuthorizedRequest.js';
 import { SessionManager } from './auth/SessionManager.js';
 import { TokenStore } from './auth/TokenStore.js';
 import { Env } from './config/Env.js';
+import { DefaultExerciseCounterRegistryFactory } from './counters/DefaultExerciseCounterRegistryFactory.js';
 import { Navigator } from './routing/Navigator.js';
 import './styles.css';
 import { registerServiceWorker } from './sw/registerServiceWorker.js';
@@ -34,6 +35,7 @@ function main(): void {
   const navigator = new Navigator(window);
   const idempotency = new IdempotencyKey();
 
+  const exerciseCounters = DefaultExerciseCounterRegistryFactory.create();
   const deps: AppDependencies = {
     authApi,
     loggingApi,
@@ -42,6 +44,7 @@ function main(): void {
     authorized,
     navigator,
     newIdempotencyKey: () => idempotency.next(),
+    exerciseCounters,
   };
 
   const rootElement = document.getElementById('root');
