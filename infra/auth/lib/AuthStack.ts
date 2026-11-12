@@ -55,8 +55,8 @@ import { AppPublicUrl } from './AppPublicUrl.js';
 export class AuthStack extends Stack {
   private static readonly SSM_PARAM_PREFIX = '/gym/auth/';
   private static readonly JWT_KEY_ID = 'v1';
-  private static readonly VERIFY_URL_PATH = 'verify';
-  private static readonly RESET_URL_PATH = 'reset';
+  private static readonly VERIFY_URL_PATH = 'verify-email';
+  private static readonly RESET_URL_PATH = 'reset-password';
 
   public constructor(scope: Construct, id: string, props: StackProps) {
     super(scope, id, props);
