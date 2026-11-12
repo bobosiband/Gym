@@ -4,14 +4,20 @@ import type { PoseLandmarks } from './PoseLandmark.js';
  * Observation returned by {@link RepDetector.processFrame}.
  *
  * `repCompleted` is `true` for exactly the frame on which a rep
- * finishes. `phaseLabel` and `signalValue` are optional observability
- * hooks for the UI (for example "down | 92 degrees") and never
- * influence counting logic.
+ * finishes. `phaseLabel`, `signalValue`, `view` and `failReason` are
+ * optional observability hooks for the UI (for example
+ * "down | 92 degrees | view front") and never influence counting
+ * logic. `view` is the camera-angle classification the detector most
+ * recently settled on; `failReason` carries the short tag of the
+ * specific check that rejected the current frame (for example
+ * "wrists not below shoulders") so the UI can point the user at it.
  */
 export interface RepObservation {
   readonly repCompleted: boolean;
   readonly phaseLabel?: string;
   readonly signalValue?: number;
+  readonly view?: 'front' | 'side' | 'unknown';
+  readonly failReason?: string;
 }
 
 /**

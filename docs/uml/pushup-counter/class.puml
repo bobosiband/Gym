@@ -53,17 +53,50 @@ package "@gym/pose" {
 package "@gym/exercise-pushup" {
   class PushupRepDetector
   class StrictPushupRepDetector {
-    - postureGate: PostureGate
+    - viewDetector: ViewDetector
+    - positionGate: CompositePushupPositionGate
     - elbowStrategy: ElbowAngleStrategy
-    - shoulderDrop: ShoulderDropStrategy
+    - descent: CompositeDescentStrategy
+    - dropout: DropoutTolerance
     - timing: RepTimingGate
     - maxSmoother: AngleSmoother
     - minSmoother: AngleSmoother
     + processFrame(landmarks): RepObservation
     + reset(): void
   }
+  interface PushupPositionGate {
+    + evaluate(landmarks): PushupPositionEvaluation
+  }
+  interface DescentStrategy {
+    + reset(): void
+    + markUp(landmarks): void
+    + observe(landmarks): void
+    + isDescentSufficient(): boolean
+  }
+  class ViewDetector {
+    + observe(landmarks): PushupViewKind
+    + getView(): PushupViewKind
+    + reset(): void
+  }
+  class CompositePushupPositionGate {
+    + evaluate(landmarks): PushupPositionEvaluation
+  }
+  class CompositeDescentStrategy {
+    + reset(): void
+    + markUp(landmarks): void
+    + observe(landmarks): void
+    + isDescentSufficient(): boolean
+  }
+  class DropoutTolerance {
+    + observeOk(): void
+    + observeMiss(): boolean
+    + reset(): void
+  }
   class PostureGate {
-    + evaluate(landmarks): PostureEvaluation
+    + evaluate(landmarks): PushupPositionEvaluation
+  }
+  class FrontPostureGate {
+    + evaluate(landmarks): PushupPositionEvaluation
   }
   class ElbowAngleStrategy {
     + evaluate(landmarks): ElbowReading | null
@@ -71,7 +104,13 @@ package "@gym/exercise-pushup" {
   class ShoulderDropStrategy {
     + markUp(landmarks): void
     + observe(landmarks): void
-    + isDropSufficient(): boolean
+    + isDescentSufficient(): boolean
+    + reset(): void
+  }
+  class FrontDescentStrategy {
+    + markUp(landmarks): void
+    + observe(landmarks): void
+    + isDescentSufficient(): boolean
     + reset(): void
   }
   class RepTimingGate {
@@ -116,12 +155,29 @@ PushupRepDetector ..|> RepDetector
 PushupRepDetector ..> PoseGeometry
 PushupRepDetector ..> PoseLandmarkIndex
 StrictPushupRepDetector ..|> RepDetector
-StrictPushupRepDetector --> PostureGate
+StrictPushupRepDetector --> ViewDetector
+StrictPushupRepDetector --> CompositePushupPositionGate
+StrictPushupRepDetector --> CompositeDescentStrategy
 StrictPushupRepDetector --> ElbowAngleStrategy
-StrictPushupRepDetector --> ShoulderDropStrategy
+StrictPushupRepDetector --> DropoutTolerance
 StrictPushupRepDetector --> RepTimingGate
 StrictPushupRepDetector --> AngleSmoother
+PostureGate ..|> PushupPositionGate
+FrontPostureGate ..|> PushupPositionGate
+ShoulderDropStrategy ..|> DescentStrategy
+FrontDescentStrategy ..|> DescentStrategy
+CompositePushupPositionGate ..|> PushupPositionGate
+CompositePushupPositionGate --> ViewDetector
+CompositePushupPositionGate --> PostureGate
+CompositePushupPositionGate --> FrontPostureGate
+CompositeDescentStrategy ..|> DescentStrategy
+CompositeDescentStrategy --> ViewDetector
+CompositeDescentStrategy --> ShoulderDropStrategy
+CompositeDescentStrategy --> FrontDescentStrategy
 PostureGate ..> PoseGeometry
+FrontPostureGate ..> PoseLandmarkIndex
+FrontDescentStrategy ..> PoseLandmarkIndex
+ViewDetector ..> PoseLandmarkIndex
 ElbowAngleStrategy ..> PoseGeometry
 PushupRepCounter --> RepCounter
 PushupRepCounter --> PushupRepDetector

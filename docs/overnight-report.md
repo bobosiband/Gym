@@ -70,6 +70,52 @@ Linked from `README.md` (new bullet under `## Documentation`) and from `docs/roa
 
 No code, no contracts, no infra. House-rule compliance is verified by `scripts/style-check.mjs` (no em or en dashes, no emojis). CI picks up the usual Prettier, PlantUML render, and tree checks.
 
+## Part 4: front-view push-up counter (PR bongani/pushup-front-view)
+
+The strict counter that shipped in Part 2 only counted reps from a side camera. Most users film from the front, where hips and ankles are hidden and the shoulder-hip line sits close to vertical; `PostureGate` never passed and the counter never ticked. The fix is pluggable per-view strategies so the detector picks the right gate and descent rule based on how the user is actually filmed, with every threshold exposed as a named option defaulting to the lenient values.
+
+### New strategy classes (packages/exercise-pushup/src/strategies)
+
+- `ViewDetector` classifies FRONT or SIDE from landmark geometry. Primary signal is the shoulder-hip tilt (45 degrees or more is front, 30 degrees or less is side); fallback when the hips are hidden is the ratio of shoulder width to shoulder-to-wrist distance. A three-frame hysteresis window keeps the reading from flickering.
+- `FrontPostureGate` needs only the nose, both shoulders, and at least one visible arm. The user is "in position" when the visible wrists sit below their matching shoulders in the image and the shoulders are wide enough apart to look like a person facing the camera.
+- `FrontDescentStrategy` anchors a baseline head y (average of shoulder midpoint and nose) and shoulder width at the start of each up phase, then measures the peak downward excursion of the head toward the wrists. A rep needs the head to drop at least 25 percent of the shoulder width.
+- `CompositePushupPositionGate` and `CompositeDescentStrategy` are the view-aware wrappers. They hold the per-view strategies plus a shared `ViewDetector` and dispatch on the active view. Unknown falls back to the side strategies so the counter does not refuse to evaluate while the view smoother is settling.
+- `DropoutTolerance` absorbs brief landmark drops (six frames by default, around 200 ms at 30 fps). Short dropouts keep the current phase and emit a `dropout` label; only a longer lapse flips the state machine to `pause` and clears the descent, timing, and smoother.
+
+### Loosened defaults (same strategies, kinder numbers)
+
+- `PostureGate` (now the side gate): tilt tolerance 30 → 45 degrees, body straightness 150 → 135 degrees, visibility floor 0.6 → 0.4. Ankles are optional when both hips are visible.
+- `ElbowAngleStrategy` and `ShoulderDropStrategy` visibility floors 0.6 → 0.4.
+- `RepTimingGate.minRepSeconds` 0.5 → 0.4.
+- `SkeletonRenderer.minVisibility` 0.5 → 0.4 so joints read green at the same floor the detector uses.
+
+### Detector rewiring
+
+`StrictPushupRepDetector` now composes the two view-aware strategies plus the dropout tolerance and still runs the existing elbow-smoother-timing machine on top. It auto-calibrates the up-phase baseline across the first 1.5 s in position (re-anchors on every up-phase frame whose raw elbow angle is actually in the up band), and extends `RepObservation` with optional `view` and `failReason` fields so the UI can show both without extra plumbing. The detector returns a new `dropout` phase label for brief landmark misses; `pause` is now reserved for lapses that exceed the tolerance window.
+
+### Web wiring
+
+`apps/web/src/counters/PushupExerciseCounter.tsx` drops its standalone `PostureGate` reference and reads posture state, the active view, and the latest fail reason from the observation. The debug line now shows `| view front` (or `side` or `unknown`) alongside reps, elbow angle, and phase. The "Get into position" live region appends the fail reason (for example `(wrists not below shoulders)`), and the skeleton overlay is drawn on every frame before any state check so it never disappears when a gate fails. A floating-point epsilon (1e-6) in the detector absorbs `acos` round-off that would otherwise push 90 just past the strict down threshold after smoothing.
+
+### Tests
+
+- New files under `tests/exercise-pushup/`: `ViewDetector.test.ts` (5), `FrontPostureGate.test.ts` (5), `FrontDescentStrategy.test.ts` (4), `DropoutTolerance.test.ts` (3).
+- `tests/exercise-pushup/StrictPushupRepDetector.test.ts` grows from 11 to 16 cases. New coverage: one front-view rep with no hips or ankles visible, one rep with a mid-rep landmark dropout, a front-view wave with wrists above shoulders counted as zero, a front-view arm bend without descent counted as zero, and view exposed on the observation. The sit-up pause case now feeds dropout frames to exceed the tolerance window.
+- `tests/pushup-counter/support/Frames.ts` adds `frontPushupFrame`, `sidePushupFrame`, and `dropoutFrame` helpers and populates `Nose` on the existing side fixtures.
+- `tests/pose/SkeletonRenderer.test.ts` gains one case proving the overlay draws lines and joints even when every landmark is below the visibility floor (the posture-check-fails scenario the brief calls out).
+
+Totals after this PR: `@gym/exercise-pushup` grows from 43 to 65 tests, `@gym/pose` grows from 10 to 11, `apps/web` stays at 34, `apps/pushup-counter` stays at 10.
+
+### UML
+
+`docs/uml/pushup-counter/class.puml` now shows `ViewDetector`, `CompositePushupPositionGate`, `CompositeDescentStrategy`, `FrontPostureGate`, `FrontDescentStrategy`, `DropoutTolerance`, and the shared `PushupPositionGate` and `DescentStrategy` interfaces, with the composites wired into the strict detector.
+
+### Verification pending for the owner
+
+- Deploy via `pnpm dlx vercel --prod` (or the usual Vercel CLI invocation from the repo root).
+- Run the live app on a device with the camera facing the user (front view) and with the camera to the side, confirm the rep count is five in both for a real 5-rep set, the skeleton overlay keeps drawing when you step out of frame, and the debug line reports `view front` or `view side` as expected.
+- Run a short wave with wrists above shoulders and confirm the count stays at zero with `wrists not below shoulders` in the status line.
+
 # Overnight report: 2026-11-09
 
 This report summarises the overnight session that landed on top of the previous (2026-11-02) report. All work shipped: every PR below is on `main`, and the achievements, progress, and web services are live on their respective platforms.

@@ -1,13 +1,14 @@
 import { RepCounter } from '@gym/pose';
 import type { PoseLandmarks, PoseSource } from '@gym/pose';
 import { MediaPipePoseSource, SkeletonRenderer } from '@gym/pose/browser';
-import { PostureGate, StrictPushupRepDetector } from '@gym/exercise-pushup';
+import { StrictPushupRepDetector } from '@gym/exercise-pushup';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { ExerciseCounterProps } from './ExerciseCounterComponent.js';
 
 type Status = 'idle' | 'starting' | 'running' | 'stopped' | 'error';
-type Phase = 'unknown' | 'up' | 'down' | 'pause';
+type Phase = 'unknown' | 'up' | 'down' | 'pause' | 'dropout';
+type View = 'front' | 'side' | 'unknown';
 
 /**
  * Push-up counter widget. Composes a {@link MediaPipePoseSource}
@@ -17,9 +18,10 @@ type Phase = 'unknown' | 'up' | 'down' | 'pause';
  *
  * The widget draws a mirrored skeleton overlay on top of the camera
  * feed so the user can see what the detector sees. Posture, phase,
- * and the current elbow angle are shown in text alongside the rep
- * count. A posture-aware live region announces transitions in and
- * out of the push-up position.
+ * detected view, and the current elbow angle are shown in text
+ * alongside the rep count; the failReason of the latest frame is
+ * surfaced inside the posture-aware live region so screen readers
+ * announce "wrists not below shoulders" and friends.
  */
 export default function PushupExerciseCounter(props: ExerciseCounterProps): JSX.Element {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -27,22 +29,23 @@ export default function PushupExerciseCounter(props: ExerciseCounterProps): JSX.
   const sourceRef = useRef<PoseSource | null>(null);
   const counterRef = useRef<RepCounter>(new RepCounter(new StrictPushupRepDetector()));
   const rendererRef = useRef<SkeletonRenderer>(new SkeletonRenderer());
-  const postureGateRef = useRef<PostureGate>(new PostureGate());
   const [status, setStatus] = useState<Status>('idle');
   const [count, setCount] = useState<number>(0);
   const [angle, setAngle] = useState<number | null>(null);
   const [phase, setPhase] = useState<Phase>('unknown');
-  const [inPosition, setInPosition] = useState<boolean>(false);
+  const [view, setView] = useState<View>('unknown');
+  const [failReason, setFailReason] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleFrame = useCallback((landmarks: PoseLandmarks) => {
+    drawOverlay(canvasRef.current, videoRef.current, rendererRef.current, landmarks);
     counterRef.current.processFrame(landmarks);
     setCount(counterRef.current.getCount());
     const observation = counterRef.current.getLastObservation();
     setAngle(observation?.signalValue ?? null);
     setPhase((observation?.phaseLabel as Phase | undefined) ?? 'unknown');
-    setInPosition(postureGateRef.current.evaluate(landmarks).inPosition);
-    drawOverlay(canvasRef.current, videoRef.current, rendererRef.current, landmarks);
+    setView((observation?.view as View | undefined) ?? 'unknown');
+    setFailReason(observation?.failReason ?? null);
   }, []);
 
   const start = useCallback(async () => {
@@ -53,7 +56,8 @@ export default function PushupExerciseCounter(props: ExerciseCounterProps): JSX.
     setCount(0);
     setAngle(null);
     setPhase('unknown');
-    setInPosition(false);
+    setView('unknown');
+    setFailReason(null);
     setErrorMessage(null);
     setStatus('starting');
     try {
@@ -95,7 +99,12 @@ export default function PushupExerciseCounter(props: ExerciseCounterProps): JSX.
     };
   }, []);
 
-  const postureLabel = inPosition ? 'In position' : 'Get into position';
+  const inPosition = phase === 'up' || phase === 'down' || phase === 'dropout';
+  const postureLabel = inPosition
+    ? 'In position'
+    : failReason !== null
+      ? `Get into position (${failReason})`
+      : 'Get into position';
 
   return (
     <section aria-labelledby="exercise-counter-title" className="exercise-counter">
@@ -106,6 +115,7 @@ export default function PushupExerciseCounter(props: ExerciseCounterProps): JSX.
           <span className="exercise-counter-signal"> | elbow {Math.round(angle)} degrees</span>
         ) : null}
         <span className="exercise-counter-signal"> | phase {phase}</span>
+        <span className="exercise-counter-signal"> | view {view}</span>
       </p>
       <p
         role="status"
@@ -146,9 +156,9 @@ export default function PushupExerciseCounter(props: ExerciseCounterProps): JSX.
 }
 
 /**
- * Draw the skeleton overlay for a single frame. Pulled out of the
- * component body so the hook stays small and the renderer call site
- * does not pollute the state-management code.
+ * Draw the skeleton overlay for a single frame. Called before any
+ * state change so the overlay keeps rendering even when the detector
+ * pauses or reports a landmark dropout.
  */
 function drawOverlay(
   canvas: HTMLCanvasElement | null,

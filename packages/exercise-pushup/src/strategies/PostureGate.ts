@@ -1,11 +1,23 @@
 import { PoseGeometry, PoseLandmarkIndex, type PoseLandmark, type PoseLandmarks } from '@gym/pose';
 
+import type {
+  PushupPositionEvaluation,
+  PushupPositionGate,
+} from './PushupPositionGate.js';
+
 /**
- * Tunable thresholds for {@link PostureGate}. The defaults match the
- * owner brief: the torso can be up to 30 degrees off horizontal
- * (otherwise the user is sitting, kneeling, or standing) and the
- * shoulder-hip-ankle angle must stay above 150 degrees (otherwise
- * the hips sag or pike enough that the lift is not a push-up).
+ * Tunable thresholds for {@link PostureGate}, the side-view position
+ * gate. Defaults are loosened from the strict Stage 2 rules so the
+ * detector counts real reps from a camera placed roughly perpendicular
+ * to the user:
+ *
+ *  - The torso may tilt up to 45 degrees (from a perfect plank).
+ *  - The shoulder-hip-ankle angle must reach at least 135 degrees,
+ *    down from 150, so a slight hip sag no longer kills the rep.
+ *  - Landmark visibility floor is 0.4 so partial-side exposures or
+ *    dim lighting do not reject the pose.
+ *  - Ankles are optional whenever both hips are visible; the gate
+ *    falls back to the shoulder-hip tilt alone in that case.
  */
 export interface PostureGateOptions {
   readonly maxTorsoTiltDegrees: number;
@@ -14,41 +26,38 @@ export interface PostureGateOptions {
 }
 
 const DEFAULTS: PostureGateOptions = {
-  maxTorsoTiltDegrees: 30,
-  minBodyStraightnessDegrees: 150,
-  minVisibility: 0.6,
+  maxTorsoTiltDegrees: 45,
+  minBodyStraightnessDegrees: 135,
+  minVisibility: 0.4,
 };
 
 /**
- * Result of a single posture evaluation.
+ * Result of a side-view posture evaluation.
  *
  * `inPosition` is the boolean the state machine acts on. `reason` is
  * a short human-readable tag the UI can surface to tell the user why
- * they are being paused (missing landmarks, torso too vertical,
- * body not straight enough).
+ * they are being paused (missing landmarks, torso too vertical, body
+ * not straight enough).
  */
-export interface PostureEvaluation {
-  readonly inPosition: boolean;
-  readonly reason?: string;
-  readonly torsoTiltDegrees: number | null;
-  readonly bodyStraightnessDegrees: number | null;
-}
+export type PostureEvaluation = PushupPositionEvaluation;
 
 /**
- * Decides, per frame, whether the user is in a push-up position.
+ * Side-view position gate for push-ups. Composed into
+ * {@link CompositePushupPositionGate} when running the view-aware
+ * detector; also usable directly by callers that know the camera
+ * angle up front.
  *
- * Rules (both must hold, and all required landmarks must be visible):
+ * Rules, with every required landmark passing the visibility floor:
  *
  *  1. The absolute angle of the shoulder-to-hip line relative to the
  *     image horizontal is at most {@link PostureGateOptions.maxTorsoTiltDegrees}.
- *  2. The shoulder-hip-ankle angle (minimum across the two sides, so
- *     occluded sides never relax the check) is at least
- *     {@link PostureGateOptions.minBodyStraightnessDegrees}.
- *
- * The gate is pure: it owns no state and the detector is free to
- * evaluate it every frame.
+ *  2. When both ankles are visible, the shoulder-hip-ankle angle
+ *     (minimum across the two sides) is at least
+ *     {@link PostureGateOptions.minBodyStraightnessDegrees}. Ankles
+ *     are optional when both hips are visible; the gate still accepts
+ *     the frame on the tilt check alone.
  */
-export class PostureGate {
+export class PostureGate implements PushupPositionGate {
   private readonly options: PostureGateOptions;
 
   public constructor(options: Partial<PostureGateOptions> = {}) {
@@ -60,19 +69,15 @@ export class PostureGate {
     const rightShoulder = this.visible(landmarks[PoseLandmarkIndex.RightShoulder]);
     const leftHip = this.visible(landmarks[PoseLandmarkIndex.LeftHip]);
     const rightHip = this.visible(landmarks[PoseLandmarkIndex.RightHip]);
-    const leftAnkle = this.visible(landmarks[PoseLandmarkIndex.LeftAnkle]);
-    const rightAnkle = this.visible(landmarks[PoseLandmarkIndex.RightAnkle]);
     if (
       leftShoulder === null ||
       rightShoulder === null ||
       leftHip === null ||
-      rightHip === null ||
-      leftAnkle === null ||
-      rightAnkle === null
+      rightHip === null
     ) {
       return {
         inPosition: false,
-        reason: 'Full-body landmarks are not visible',
+        reason: 'shoulders or hips not visible',
         torsoTiltDegrees: null,
         bodyStraightnessDegrees: null,
       };
@@ -82,21 +87,30 @@ export class PostureGate {
     const dx = Math.abs(hipMid.x - shoulderMid.x);
     const dy = Math.abs(hipMid.y - shoulderMid.y);
     const torsoTiltDegrees = (Math.atan2(dy, dx) * 180) / Math.PI;
-    const leftStraight = PoseGeometry.jointAngleDegrees(leftShoulder, leftHip, leftAnkle);
-    const rightStraight = PoseGeometry.jointAngleDegrees(rightShoulder, rightHip, rightAnkle);
-    const bodyStraightnessDegrees = Math.min(leftStraight, rightStraight);
     if (torsoTiltDegrees > this.options.maxTorsoTiltDegrees) {
       return {
         inPosition: false,
-        reason: 'Torso is too upright',
+        reason: 'torso too upright',
         torsoTiltDegrees,
-        bodyStraightnessDegrees,
+        bodyStraightnessDegrees: null,
       };
     }
+    const leftAnkle = this.visible(landmarks[PoseLandmarkIndex.LeftAnkle]);
+    const rightAnkle = this.visible(landmarks[PoseLandmarkIndex.RightAnkle]);
+    if (leftAnkle === null || rightAnkle === null) {
+      return {
+        inPosition: true,
+        torsoTiltDegrees,
+        bodyStraightnessDegrees: null,
+      };
+    }
+    const leftStraight = PoseGeometry.jointAngleDegrees(leftShoulder, leftHip, leftAnkle);
+    const rightStraight = PoseGeometry.jointAngleDegrees(rightShoulder, rightHip, rightAnkle);
+    const bodyStraightnessDegrees = Math.min(leftStraight, rightStraight);
     if (bodyStraightnessDegrees < this.options.minBodyStraightnessDegrees) {
       return {
         inPosition: false,
-        reason: 'Body is not straight enough',
+        reason: 'body not straight enough',
         torsoTiltDegrees,
         bodyStraightnessDegrees,
       };

@@ -175,4 +175,25 @@ describe('SkeletonRenderer', () => {
     expect(ctx.calls).toContainEqual({ op: 'setTransform', a: 1, d: 1, e: 0 });
     expect(ctx.calls).toContainEqual({ op: 'clearRect' });
   });
+
+  it('still draws segments and joints when every landmark is below the visibility floor', () => {
+    const ctx = new StubContext();
+    const renderer = new SkeletonRenderer({ minVisibility: 0.4 });
+    const landmarks = fullBodyLandmarks(0.1);
+    renderer.render(ctx as unknown as CanvasRenderingContext2D, landmarks, SIZE, {
+      mirrored: true,
+    });
+    const strokeCount = ctx.calls.filter((call) => call.op === 'stroke').length;
+    const fillCount = ctx.calls.filter((call) => call.op === 'fill').length;
+    const strokeColours = ctx.calls
+      .filter((call): call is Extract<DrawCall, { op: 'strokeStyle' }> => call.op === 'strokeStyle')
+      .map((call) => call.value);
+    const fillColours = ctx.calls
+      .filter((call): call is Extract<DrawCall, { op: 'fillStyle' }> => call.op === 'fillStyle')
+      .map((call) => call.value);
+    expect(strokeCount).toBeGreaterThan(0);
+    expect(fillCount).toBeGreaterThan(0);
+    expect(strokeColours.every((c) => c === '#94a3b8')).toBe(true);
+    expect(fillColours.every((c) => c === '#94a3b8')).toBe(true);
+  });
 });

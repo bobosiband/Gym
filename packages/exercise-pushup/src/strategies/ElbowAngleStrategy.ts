@@ -3,17 +3,19 @@ import { PoseGeometry, PoseLandmarkIndex, type PoseLandmark, type PoseLandmarks 
 /**
  * Tunable thresholds for {@link ElbowAngleStrategy}.
  *
- * The `minVisibility` floor is deliberately stricter than the
- * baseline {@link PushupRepDetector} (0.6 vs 0.5) because the strict
- * detector pairs the elbow signal with a posture gate; the cost of a
- * dropped frame is only a pause, never a miscount.
+ * The `minVisibility` floor matches the rest of the lenient defaults
+ * shared by {@link PostureGate}, {@link FrontPostureGate},
+ * {@link ShoulderDropStrategy} and {@link FrontDescentStrategy}.
+ * Dropped frames fall under {@link DropoutTolerance} rather than
+ * pausing the state machine, so the floor can sit at 0.4 without
+ * giving up accuracy.
  */
 export interface ElbowAngleStrategyOptions {
   readonly minVisibility: number;
 }
 
 const DEFAULTS: ElbowAngleStrategyOptions = {
-  minVisibility: 0.6,
+  minVisibility: 0.4,
 };
 
 /**

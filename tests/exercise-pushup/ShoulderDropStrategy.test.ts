@@ -6,7 +6,7 @@ import { pushupFrame } from '../pushup-counter/support/Frames.js';
 describe('ShoulderDropStrategy', () => {
   it('reports insufficient drop before any up anchor is set', () => {
     const strategy = new ShoulderDropStrategy();
-    expect(strategy.isDropSufficient()).toBe(false);
+    expect(strategy.isDescentSufficient()).toBe(false);
   });
 
   it('reports sufficient drop when the shoulders travel a large fraction of the torso length', () => {
@@ -25,7 +25,7 @@ describe('ShoulderDropStrategy', () => {
     });
     strategy.markUp(upFrame);
     strategy.observe(downFrame);
-    expect(strategy.isDropSufficient()).toBe(true);
+    expect(strategy.isDescentSufficient()).toBe(true);
   });
 
   it('reports insufficient drop when the shoulders barely move (seated arm bend case)', () => {
@@ -44,7 +44,7 @@ describe('ShoulderDropStrategy', () => {
     });
     strategy.markUp(upFrame);
     strategy.observe(nearStaticFrame);
-    expect(strategy.isDropSufficient()).toBe(false);
+    expect(strategy.isDescentSufficient()).toBe(false);
   });
 
   it('reset clears the up anchor and peak', () => {
@@ -64,6 +64,6 @@ describe('ShoulderDropStrategy', () => {
     strategy.markUp(upFrame);
     strategy.observe(downFrame);
     strategy.reset();
-    expect(strategy.isDropSufficient()).toBe(false);
+    expect(strategy.isDescentSufficient()).toBe(false);
   });
 });

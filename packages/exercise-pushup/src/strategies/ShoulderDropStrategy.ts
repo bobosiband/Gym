@@ -1,5 +1,7 @@
 import { PoseLandmarkIndex, type PoseLandmark, type PoseLandmarks } from '@gym/pose';
 
+import type { DescentStrategy } from './DescentStrategy.js';
+
 /**
  * Tunable thresholds for {@link ShoulderDropStrategy}.
  *
@@ -9,7 +11,8 @@ import { PoseLandmarkIndex, type PoseLandmark, type PoseLandmarks } from '@gym/p
  * (torso upright, arms bending, shoulders never translate) because
  * the shoulders never drop meaningfully relative to the hips.
  *
- * `minVisibility` guards against partial-body frames.
+ * `minVisibility` guards against partial-body frames; 0.4 matches
+ * the rest of the lenient defaults.
  */
 export interface ShoulderDropStrategyOptions {
   readonly minShoulderDropRatio: number;
@@ -18,7 +21,7 @@ export interface ShoulderDropStrategyOptions {
 
 const DEFAULTS: ShoulderDropStrategyOptions = {
   minShoulderDropRatio: 0.25,
-  minVisibility: 0.6,
+  minVisibility: 0.4,
 };
 
 /**
@@ -29,7 +32,7 @@ const DEFAULTS: ShoulderDropStrategyOptions = {
  * machine last declared the user to be in the up phase, and the
  * maximum shoulder `y` observed since.
  */
-export class ShoulderDropStrategy {
+export class ShoulderDropStrategy implements DescentStrategy {
   private readonly options: ShoulderDropStrategyOptions;
   private upShoulderY: number | null = null;
   private upTorsoLength: number | null = null;
@@ -81,7 +84,7 @@ export class ShoulderDropStrategy {
    * configured minimum relative to the up-phase torso length. The
    * detector calls this at the candidate rep boundary (down to up).
    */
-  public isDropSufficient(): boolean {
+  public isDescentSufficient(): boolean {
     if (
       this.upShoulderY === null ||
       this.upTorsoLength === null ||
