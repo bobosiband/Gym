@@ -13,6 +13,7 @@ Built as a microservice monorepo on free tiers and on-device compute. Zero recur
 ## Documentation
 
 - Architecture: `docs/architecture.md`
+- Design sessions: `docs/design/` (latest: `docs/design/2026-11-11-design-session.md`)
 - Events: `docs/events.md`
 - Data and media sources: `docs/SOURCES.md`
 - Roadmap: `docs/roadmap.md`

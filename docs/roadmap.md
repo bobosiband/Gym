@@ -2,6 +2,10 @@
 
 Living record of planned features. Each row names the owning service (existing or new), the events it consumes or emits, and any open questions. Nothing in this file is code or infrastructure; it is a shared backlog so cross-service work can be sequenced sensibly.
 
+## Design sessions
+
+- [`docs/design/2026-11-11-design-session.md`](design/2026-11-11-design-session.md) covers the cost-protection and tiered kill-switch plan, the progression engine (skill trees, baselines, verified-vs-logged reps), the fun layer (weekly bosses, cheeky reminders, surprise loot), machine recognition via on-device OCR, friends and leaderboards ranked by plan completion, and the open questions the owner still has to decide. Items from that session appear in the sections below as they get owner approval.
+
 Items are grouped by status:
 
 - **Built** means a merged PR covers at least a slice of the feature.

@@ -62,6 +62,14 @@ Totals after this PR: `@gym/exercise-pushup` grows from 8 to 43 tests, `@gym/pos
 - Open the live app on a device with a camera, run a real 5-rep set, confirm overlay renders mirrored, posture status reads `Get into position` when standing and `In position` when planked, and the rep count is five.
 - Run a short wave with the arms (sitting) and a slow arm bend (sitting) and confirm the count stays at zero.
 
+## Part 3: design-session doc (PR bongani/design-session-docs)
+
+Pure documentation. Captures the 2026-11-11 design session in `docs/design/2026-11-11-design-session.md`, the first file under a new `docs/design/` folder. The doc covers seven areas: tiered cost protection and kill switch, the agreed build order, the progression engine (baselines, skill trees, verified-vs-logged reps, current form vs earned level), the fun layer (weekly boss, cheeky reminders, surprise loot), machine recognition via on-device OCR and a community fallback, friends and leaderboards ranked by plan completion rather than raw strength, and the three open questions the owner still has to decide (coach-split shape, assessment length and confidence weighting, hosting alternative for commercial use).
+
+Linked from `README.md` (new bullet under `## Documentation`) and from `docs/roadmap.md` (new `## Design sessions` section near the top). Every "built" item inside the design doc links to its directory so the status is self-verifying when the owner re-reads this months from now.
+
+No code, no contracts, no infra. House-rule compliance is verified by `scripts/style-check.mjs` (no em or en dashes, no emojis). CI picks up the usual Prettier, PlantUML render, and tree checks.
+
 # Overnight report: 2026-11-09
 
 This report summarises the overnight session that landed on top of the previous (2026-11-02) report. All work shipped: every PR below is on `main`, and the achievements, progress, and web services are live on their respective platforms.
