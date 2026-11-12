@@ -1,9 +1,6 @@
 import type { PoseLandmarks } from '@gym/pose';
 
-import type {
-  PushupPositionEvaluation,
-  PushupPositionGate,
-} from './PushupPositionGate.js';
+import type { PushupPositionEvaluation, PushupPositionGate } from './PushupPositionGate.js';
 import type { ViewDetector } from './ViewDetector.js';
 import type { PushupViewKind } from './PushupViewKind.js';
 

@@ -1,9 +1,6 @@
 import { PoseGeometry, PoseLandmarkIndex, type PoseLandmark, type PoseLandmarks } from '@gym/pose';
 
-import type {
-  PushupPositionEvaluation,
-  PushupPositionGate,
-} from './PushupPositionGate.js';
+import type { PushupPositionEvaluation, PushupPositionGate } from './PushupPositionGate.js';
 
 /**
  * Tunable thresholds for {@link PostureGate}, the side-view position
@@ -69,12 +66,7 @@ export class PostureGate implements PushupPositionGate {
     const rightShoulder = this.visible(landmarks[PoseLandmarkIndex.RightShoulder]);
     const leftHip = this.visible(landmarks[PoseLandmarkIndex.LeftHip]);
     const rightHip = this.visible(landmarks[PoseLandmarkIndex.RightHip]);
-    if (
-      leftShoulder === null ||
-      rightShoulder === null ||
-      leftHip === null ||
-      rightHip === null
-    ) {
+    if (leftShoulder === null || rightShoulder === null || leftHip === null || rightHip === null) {
       return {
         inPosition: false,
         reason: 'shoulders or hips not visible',

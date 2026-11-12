@@ -1,9 +1,6 @@
 import { PoseLandmarkIndex, type PoseLandmark, type PoseLandmarks } from '@gym/pose';
 
-import type {
-  PushupPositionEvaluation,
-  PushupPositionGate,
-} from './PushupPositionGate.js';
+import type { PushupPositionEvaluation, PushupPositionGate } from './PushupPositionGate.js';
 
 /**
  * Tunable thresholds for {@link FrontPostureGate}. The gate is

@@ -178,10 +178,7 @@ export class StrictPushupRepDetector implements RepDetector {
     if (!posture.inPosition) {
       const exceeded = this.dropout.observeMiss();
       if (!exceeded && this.phase !== 'unknown' && this.phase !== 'pause') {
-        return withFailReason(
-          { repCompleted: false, phaseLabel: 'dropout', view },
-          posture.reason
-        );
+        return withFailReason({ repCompleted: false, phaseLabel: 'dropout', view }, posture.reason);
       }
       if (this.phase !== 'pause') {
         this.descent.reset();
@@ -191,10 +188,7 @@ export class StrictPushupRepDetector implements RepDetector {
         this.upEnteredAtMs = null;
       }
       this.phase = 'pause';
-      return withFailReason(
-        { repCompleted: false, phaseLabel: 'pause', view },
-        posture.reason
-      );
+      return withFailReason({ repCompleted: false, phaseLabel: 'pause', view }, posture.reason);
     }
     this.dropout.observeOk();
     const reading = this.elbowStrategy.evaluate(landmarks);
@@ -233,10 +227,7 @@ export class StrictPushupRepDetector implements RepDetector {
       if (enteringUp) {
         this.descent.markUp(landmarks);
         this.upEnteredAtMs = nowMs;
-      } else if (
-        this.isCalibrating(nowMs) &&
-        reading.maxAngle >= this.options.upAngleDegrees
-      ) {
+      } else if (this.isCalibrating(nowMs) && reading.maxAngle >= this.options.upAngleDegrees) {
         this.descent.markUp(landmarks);
       }
       this.phase = 'up';
@@ -283,10 +274,7 @@ export type { PushupViewKind };
  * literal `{ failReason: undefined }` would fail against the
  * `failReason?: string` declaration in {@link RepObservation}.
  */
-function withFailReason(
-  observation: RepObservation,
-  reason: string | undefined
-): RepObservation {
+function withFailReason(observation: RepObservation, reason: string | undefined): RepObservation {
   if (reason === undefined) {
     return observation;
   }

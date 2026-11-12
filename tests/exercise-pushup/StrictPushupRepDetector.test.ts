@@ -325,9 +325,7 @@ describe('StrictPushupRepDetector', () => {
     expect(counter.getLastObservation()?.view).toBe('side');
     counter.reset();
     for (let i = 0; i < 5; i += 1) {
-      counter.processFrame(
-        frontPushupFrame({ leftElbowDeg: 170, rightElbowDeg: 170 })
-      );
+      counter.processFrame(frontPushupFrame({ leftElbowDeg: 170, rightElbowDeg: 170 }));
       clock.advance(60);
     }
     expect(counter.getLastObservation()?.view).toBe('front');
