@@ -182,3 +182,82 @@ button[disabled] {
   font-size: 0.85rem;
   color: var(--muted);
 }
+
+.exercise-counter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.exercise-counter-stats {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.exercise-counter-signal {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  margin-left: 0.3rem;
+}
+
+.exercise-counter-posture {
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.exercise-counter-posture-ok {
+  background: rgba(34, 197, 94, 0.15);
+  color: #166534;
+}
+
+.exercise-counter-posture-warn {
+  background: rgba(251, 191, 36, 0.2);
+  color: #92400e;
+}
+
+@media (prefers-color-scheme: dark) {
+  .exercise-counter-posture-ok {
+    background: rgba(34, 197, 94, 0.25);
+    color: #86efac;
+  }
+  .exercise-counter-posture-warn {
+    background: rgba(251, 191, 36, 0.3);
+    color: #fde68a;
+  }
+}
+
+.exercise-counter-stage {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  aspect-ratio: 4 / 3;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.exercise-counter-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+}
+
+.exercise-counter-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.exercise-counter-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}

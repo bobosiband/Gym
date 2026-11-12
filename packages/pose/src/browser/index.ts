@@ -8,3 +8,9 @@
 
 export { MediaPipePoseSource } from './MediaPipePoseSource.js';
 export type { MediaPipePoseSourceOptions } from './MediaPipePoseSource.js';
+export { SkeletonRenderer } from './SkeletonRenderer.js';
+export type {
+  CanvasSize,
+  SkeletonRenderOptions,
+  SkeletonRendererOptions,
+} from './SkeletonRenderer.js';

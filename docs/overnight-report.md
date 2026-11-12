@@ -19,6 +19,51 @@ The sibling PR brief asked for `pnpm --filter @gym/infra-auth deploy`, but as ca
 
 Deploy and manual registration email verification pending (handed to the owner because the throwaway Gmail round trip is interactive).
 
+## Part 2: strict push-up counter with strategies plus skeleton overlay (PR bongani/pushup-strict-overlay)
+
+The baseline `PushupRepDetector` is a single-signal elbow-angle state machine. The owner wanted strict detection that rejects every non-push-up motion while still reading naturally as "strategies, not if-branches". Shipped as five composable classes plus one new detector plus one browser-only renderer, all behind the existing `RepDetector` interface so `RepCounter` is unchanged.
+
+### New strategy classes (packages/exercise-pushup/src/strategies)
+
+- `AngleSmoother` is a simple moving-average filter. Window defaults to 5 frames; the strict detector feeds both arm signals through it so a single-frame jitter cannot flip the state machine.
+- `RepTimingGate` owns the "down entered at" timestamp and rejects rep candidates whose total duration is outside `[0.5 s, 10 s]`. The lower bound rejects hand waves; the upper bound rejects a held pose that drifts through both thresholds.
+- `PostureGate` evaluates two conditions each frame: the shoulder-hip line must be within 30 degrees of horizontal, and the shoulder-hip-ankle angle (minimum across the two sides) must be at least 150 degrees. Returns an `inPosition` boolean and a human-readable reason the UI surfaces.
+- `ElbowAngleStrategy` computes an `{ maxAngle, minAngle, displayAngle }` reading. With both arms visible, `maxAngle` gates the down transition (both arms must be below threshold) and `minAngle` gates the up transition (both must be above). With only one arm visible, the detector falls back to that arm. With neither visible the frame is skipped. The default `minVisibility` is tightened from 0.5 to 0.6.
+- `ShoulderDropStrategy` remembers the shoulder `y` captured at the start of each up phase and the deepest shoulder `y` observed since. At the candidate rep boundary the drop must be at least 25 percent of the torso length, measured at the up anchor. This is the specific rule that kills the "sitting arm bend" failure mode.
+
+### StrictPushupRepDetector (packages/exercise-pushup/src)
+
+Composes the five strategies into one `RepDetector`. A rep increments only when every rule holds: posture OK, both smoothed thresholds crossed, shoulder drop sufficient, timing inside the window. A new `pause` phase label fires whenever the posture gate rejects a frame; it clears the shoulder-drop anchor, the timing gate, and the smoother so the next valid frame starts clean. All thresholds surface as named options with TSDoc rationale.
+
+### SkeletonRenderer (packages/pose/src/browser)
+
+Lives under `browser/` to keep the root `@gym/pose` entry DOM-free. Renders 12 skeleton edges (both arms, torso rectangle, both legs) and 12 joint markers. Green for confident endpoints, grey for any below the visibility threshold. The `render` method accepts a `mirrored` flag that applies `ctx.setTransform(-1, 0, 0, 1, width, 0)` so the overlay matches the on-screen video, which is CSS-flipped to a natural camera-facing view. The pose package tests drive it through a plain stub context so the whole package stays node-only (no jsdom, no node-canvas).
+
+### Web wiring
+
+`apps/web/src/counters/PushupExerciseCounter.tsx` now uses `StrictPushupRepDetector`, carries a `<canvas>` sibling to the `<video>` inside a new `.exercise-counter-stage` wrapper, holds a `SkeletonRenderer` in a ref, and runs it on every landmark callback. The UI shows reps, elbow angle, phase, and a posture status line inside an `aria-live="polite"` region so screen readers announce `In position` and `Get into position`. Styles live in `apps/web/src/styles.css` under the `.exercise-counter-*` family; the overlay matches the mirrored video via `transform: scaleX(-1)` on the canvas.
+
+### Tests
+
+- `tests/exercise-pushup/AngleSmoother.test.ts` (5), `RepTimingGate.test.ts` (5), `PostureGate.test.ts` (5), `ElbowAngleStrategy.test.ts` (5), `ShoulderDropStrategy.test.ts` (4).
+- `tests/exercise-pushup/StrictPushupRepDetector.test.ts` (11) covers every scripted scenario from the brief: clean rep counts, five full reps count five, sitting arm bend counts zero, wave counts zero, jitter counts zero, partial rep counts zero, sub-0.5-second rep rejected, over-max-duration rep rejected, one arm occluded still counts, mid-session posture lapse pauses, and reset clears state.
+- `tests/pose/SkeletonRenderer.test.ts` (6) uses a stub canvas context to assert clear-then-draw ordering, green vs grey routing, mirrored transform, and the no-mirror branch.
+- `tests/pushup-counter/support/Frames.ts` grew two new helpers: `pushupFrame` builds a full 33-landmark horizontal push-up frame parameterised by elbow angles, shoulder y, hip y, ankle y, and per-arm visibility; `seatedFrame` builds a vertical-torso frame that drives the "sitting arm bend" test.
+
+Totals after this PR: `@gym/exercise-pushup` grows from 8 to 43 tests, `@gym/pose` grows from 4 to 10, `apps/web` stays at 34, `apps/pushup-counter` stays at 10.
+
+### UML
+
+`docs/uml/pushup-counter/class.puml` now shows the strict detector, its five strategies, and `SkeletonRenderer`. `docs/uml/pushup-counter/state-counter.puml` gains the `Pause` state and the shoulder-drop plus timing predicates on the Down to Up edge.
+
+### Verification pending for the owner
+
+- Deploy via `pnpm dlx vercel --prod` (or the usual Vercel CLI invocation from the repo root).
+- Open the live app on a device with a camera, run a real 5-rep set, confirm overlay renders mirrored, posture status reads `Get into position` when standing and `In position` when planked, and the rep count is five.
+- Run a short wave with the arms (sitting) and a slow arm bend (sitting) and confirm the count stays at zero.
+
+# Overnight report: 2026-11-09
+
 This report summarises the overnight session that landed on top of the previous (2026-11-02) report. All work shipped: every PR below is on `main`, and the achievements, progress, and web services are live on their respective platforms.
 
 ## Pull requests merged tonight

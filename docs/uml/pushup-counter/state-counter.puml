@@ -1,21 +1,38 @@
 @startuml
-title Gym pushup-counter: rep state machine
+title Gym pushup-counter: rep state machine (strict detector)
 
 [*] --> Unknown
 
-Unknown --> Up : elbow angle >= 160
-Unknown --> Down : elbow angle <= 90
+Unknown --> Up : posture OK, smoothed min angle >= 160
+Unknown --> Down : posture OK, smoothed max angle <= 90
 
-Up --> Down : elbow angle <= 90
-Down --> Up : elbow angle >= 160 (count += 1)
+Up --> Down : posture OK, smoothed max angle <= 90 (mark down timestamp)
+Down --> Up : posture OK, smoothed min angle >= 160\n(count += 1 iff shoulder drop sufficient and timing valid)
 
-Up --> Up : 90 < angle < 160
-Down --> Down : 90 < angle < 160
+Up --> Pause : posture fails
+Down --> Pause : posture fails
+Unknown --> Pause : posture fails
+
+Pause --> Unknown : posture recovers
+
+Up --> Up : posture OK, 90 < angle < 160
+Down --> Down : posture OK, 90 < angle < 160
+
+note right of Pause
+  Posture gate rejects the frame.
+  Shoulder-drop anchor, timing
+  gate, and smoothers all reset
+  so the next valid frame starts
+  from a clean slate.
+end note
 
 note right of Down
   Rep increments on the Down -> Up
-  transition. Low-visibility frames
-  do not change the phase.
+  transition only when:
+   - shoulder drop >= 25% of torso
+     length since the up anchor
+   - elapsed time since mark-down
+     is inside [0.5s, 10s]
 end note
 
 @enduml
