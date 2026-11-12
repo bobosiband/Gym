@@ -1,6 +1,6 @@
 /**
  * Tunable thresholds for {@link RepTimingGate}. Defaults match the
- * owner brief: a half-second lower bound rejects hand waves while a
+ * owner brief: a 0.4 s lower bound rejects hand waves while a
  * ten-second upper bound rejects static holds that happen to pass
  * through both thresholds (for example a stretch).
  */
@@ -10,7 +10,7 @@ export interface RepTimingGateOptions {
 }
 
 const DEFAULTS: RepTimingGateOptions = {
-  minRepSeconds: 0.5,
+  minRepSeconds: 0.4,
   maxRepSeconds: 10,
 };
 

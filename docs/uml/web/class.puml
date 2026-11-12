@@ -133,7 +133,6 @@ package "apps/web/src" {
     class PushupExerciseCounter <<React,lazy>> {
       - counter: RepCounter
       - renderer: SkeletonRenderer
-      - postureGate: PostureGate
       + render(): JSX.Element
     }
     class DefaultExerciseCounterRegistryFactory <<factory>>

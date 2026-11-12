@@ -15,17 +15,19 @@ export interface PoseLandmark {
 
 /**
  * A full frame of landmarks for one pose. The index layout matches
- * MediaPipe Pose: 11 and 12 are the left and right shoulders, 13 and
- * 14 the elbows, 15 and 16 the wrists, 23 and 24 the hips, 25 and 26
- * the knees, 27 and 28 the ankles.
+ * MediaPipe Pose: 0 is the nose, 11 and 12 are the left and right
+ * shoulders, 13 and 14 the elbows, 15 and 16 the wrists, 23 and 24
+ * the hips, 25 and 26 the knees, 27 and 28 the ankles.
  */
 export type PoseLandmarks = readonly PoseLandmark[];
 
 /**
  * Named MediaPipe Pose landmark indices so detectors do not pepper
- * the code with magic numbers.
+ * the code with magic numbers. {@link Nose} is used by the front-view
+ * push-up strategy; the rest cover both views.
  */
 export enum PoseLandmarkIndex {
+  Nose = 0,
   LeftShoulder = 11,
   RightShoulder = 12,
   LeftElbow = 13,

@@ -41,7 +41,7 @@ const DEFAULTS: SkeletonRendererOptions = {
   jointRadius: 4,
   goodColor: '#22c55e',
   lowConfidenceColor: '#94a3b8',
-  minVisibility: 0.5,
+  minVisibility: 0.4,
 };
 
 /**
