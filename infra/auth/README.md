@@ -35,3 +35,9 @@ pnpm --filter @gym/auth setup         # one-time (seeds SSM)
 pnpm --filter @gym/auth deploy:diff   # review
 pnpm --filter @gym/auth deploy        # apply
 ```
+
+`APP_PUBLIC_URL` (from `services/auth/.env`) is validated at synth
+time by `AppPublicUrl.resolve` in `lib/AppPublicUrl.ts`. Synth fails
+fast when the value is missing, empty, `*`, relative, not a URL, not
+`https`, or ends with a slash, so a misconfigured value never reaches
+a deployed Lambda.
