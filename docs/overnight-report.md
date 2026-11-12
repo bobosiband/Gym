@@ -19,8 +19,6 @@ The sibling PR brief asked for `pnpm --filter @gym/infra-auth deploy`, but as ca
 
 Deploy and manual registration email verification pending (handed to the owner because the throwaway Gmail round trip is interactive).
 
-
-
 This report summarises the overnight session that landed on top of the previous (2026-11-02) report. All work shipped: every PR below is on `main`, and the achievements, progress, and web services are live on their respective platforms.
 
 ## Pull requests merged tonight
