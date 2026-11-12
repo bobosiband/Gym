@@ -1,5 +1,5 @@
 @startuml
-title Gym pushup-counter: core classes (Stage 2)
+title Gym pushup-counter: core classes (Stage 2 + strict detector)
 
 skinparam shadowing false
 
@@ -43,10 +43,47 @@ package "@gym/pose" {
   }
 
   class MediaPipePoseSource <<browser>>
+
+  class SkeletonRenderer <<browser>> {
+    + render(context, landmarks, size, options): void
+    + clear(context, size): void
+  }
 }
 
 package "@gym/exercise-pushup" {
   class PushupRepDetector
+  class StrictPushupRepDetector {
+    - postureGate: PostureGate
+    - elbowStrategy: ElbowAngleStrategy
+    - shoulderDrop: ShoulderDropStrategy
+    - timing: RepTimingGate
+    - maxSmoother: AngleSmoother
+    - minSmoother: AngleSmoother
+    + processFrame(landmarks): RepObservation
+    + reset(): void
+  }
+  class PostureGate {
+    + evaluate(landmarks): PostureEvaluation
+  }
+  class ElbowAngleStrategy {
+    + evaluate(landmarks): ElbowReading | null
+  }
+  class ShoulderDropStrategy {
+    + markUp(landmarks): void
+    + observe(landmarks): void
+    + isDropSufficient(): boolean
+    + reset(): void
+  }
+  class RepTimingGate {
+    + markDown(nowMs): void
+    + isDurationValid(nowMs): boolean
+    + reset(): void
+  }
+  class AngleSmoother {
+    + push(value): number
+    + value(): number | null
+    + reset(): void
+  }
   class PushupExercise
   class PushupXpRule
   class PushupSummaryContribution
@@ -68,10 +105,24 @@ package "apps/pushup-counter/src" {
   }
 }
 
+package "apps/web/src/counters" {
+  class PushupExerciseCounter <<React>> {
+    + render(): JSX.Element
+  }
+}
+
 RepCounter --> RepDetector
 PushupRepDetector ..|> RepDetector
 PushupRepDetector ..> PoseGeometry
 PushupRepDetector ..> PoseLandmarkIndex
+StrictPushupRepDetector ..|> RepDetector
+StrictPushupRepDetector --> PostureGate
+StrictPushupRepDetector --> ElbowAngleStrategy
+StrictPushupRepDetector --> ShoulderDropStrategy
+StrictPushupRepDetector --> RepTimingGate
+StrictPushupRepDetector --> AngleSmoother
+PostureGate ..> PoseGeometry
+ElbowAngleStrategy ..> PoseGeometry
 PushupRepCounter --> RepCounter
 PushupRepCounter --> PushupRepDetector
 MediaPipePoseSource ..|> PoseSource
@@ -79,5 +130,9 @@ PushupCounter --> PoseSource
 PushupCounter --> RepCounter
 PushupCounter --> PushupRepDetector
 PushupCounter ..> MediaPipePoseSource
+PushupExerciseCounter --> RepCounter
+PushupExerciseCounter --> StrictPushupRepDetector
+PushupExerciseCounter --> SkeletonRenderer
+PushupExerciseCounter ..> MediaPipePoseSource
 
 @enduml

@@ -130,7 +130,12 @@ package "apps/web/src" {
       + exerciseKind: string
       + registry: ExerciseCounterRegistry
     }
-    class PushupExerciseCounter <<React,lazy>>
+    class PushupExerciseCounter <<React,lazy>> {
+      - counter: RepCounter
+      - renderer: SkeletonRenderer
+      - postureGate: PostureGate
+      + render(): JSX.Element
+    }
     class DefaultExerciseCounterRegistryFactory <<factory>>
   }
 }
@@ -169,5 +174,16 @@ ExerciseCounterRegistry --> ExerciseCounterComponent
 PushupExerciseCounter ..|> ExerciseCounterComponent
 DefaultExerciseCounterRegistryFactory --> ExerciseCounterRegistry
 DefaultExerciseCounterRegistryFactory ..> PushupExerciseCounter
+
+note right of PushupExerciseCounter
+  Pairs the generic RepCounter with a
+  StrictPushupRepDetector (from
+  @gym/exercise-pushup) and a
+  SkeletonRenderer (from @gym/pose/browser)
+  so the camera overlay and strict rep
+  logic swap in without touching the
+  host screen. See
+  docs/uml/pushup-counter/class.puml.
+end note
 
 @enduml
