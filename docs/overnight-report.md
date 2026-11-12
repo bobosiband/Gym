@@ -1,4 +1,25 @@
-# Overnight report: 2026-11-09
+# Overnight report: 2026-11-13
+
+This session is three independent PRs, landed in order. Entries are added to this file as each part completes.
+
+## Part 1: APP_PUBLIC_URL tightening and doc refresh (PR bongani/auth-public-app-url)
+
+The 2026-11-09 fix (PR #28) already landed the separate `APP_PUBLIC_URL` config and validator. Two gaps remained:
+
+1. `AppPublicUrl.resolve` silently stripped a trailing slash. The owner's intent is to fail synth on any trailing slash so the configured URL and the baked-in Lambda env var are byte-identical. Flipped the behaviour: the validator now throws an actionable error when the URL ends with a slash.
+2. `services/auth/.env.example`, `services/auth/README.md`, and `infra/auth/README.md` never documented `APP_PUBLIC_URL` at all. The example was missing the line, and both READMEs still only mentioned `APP_ORIGINS` under the env-vars section. All three updated: `.env.example` gains the commented line with a concrete example, `services/auth/README.md` gains a new "APP_PUBLIC_URL vs APP_ORIGINS" subsection under local environment, and `infra/auth/README.md` gains a short synth-time validation note under deploy.
+
+Tests: `tests/infra-auth/AppPublicUrl.test.ts` grew one case (deep-path trailing slash) and one case flipped from strip-asserting to reject-asserting, for 11 total passing. `services/auth` continues to pass its 102-test suite unchanged.
+
+### Deploy path clarification
+
+The sibling PR brief asked for `pnpm --filter @gym/infra-auth deploy`, but as called out in the 2026-11-09 follow-up on line 137 below, that script does not source `services/auth/.env`, so the synth-time validator never sees `APP_PUBLIC_URL` and fails loudly. `pnpm --filter @gym/auth deploy` loads the env file via Node `--env-file` and is the correct command. Used that one for the redeploy.
+
+### Verification
+
+Deploy and manual registration email verification pending (handed to the owner because the throwaway Gmail round trip is interactive).
+
+
 
 This report summarises the overnight session that landed on top of the previous (2026-11-02) report. All work shipped: every PR below is on `main`, and the achievements, progress, and web services are live on their respective platforms.
 

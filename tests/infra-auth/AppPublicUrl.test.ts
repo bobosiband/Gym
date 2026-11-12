@@ -33,8 +33,12 @@ describe('AppPublicUrl.resolve', () => {
     );
   });
 
-  it('strips a trailing slash so downstream link construction has one joiner', () => {
-    expect(AppPublicUrl.resolve('https://gym.example.com/')).toBe('https://gym.example.com');
+  it('rejects a trailing slash on the origin', () => {
+    expect(() => AppPublicUrl.resolve('https://gym.example.com/')).toThrow(/trailing slash/);
+  });
+
+  it('rejects a trailing slash on a path prefix', () => {
+    expect(() => AppPublicUrl.resolve('https://gym.example.com/app/')).toThrow(/trailing slash/);
   });
 
   it('trims leading and trailing whitespace', () => {

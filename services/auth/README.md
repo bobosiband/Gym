@@ -150,7 +150,22 @@ SMTP_USER=                # your Gmail address
 SMTP_PASS=                # the 16-char Gmail app password
 SMTP_FROM=                # your Gmail address
 APP_ORIGINS=              # eg. http://localhost:5173 (comma-separated) or * for all origins
+APP_PUBLIC_URL=           # eg. https://gym-phi-blush-16.vercel.app (absolute https, no trailing slash)
 ```
+
+### APP_PUBLIC_URL vs APP_ORIGINS
+
+These are two independent settings and must stay independent:
+
+- `APP_ORIGINS` is the CORS allow list. It may be `*` while the
+  frontend is coming up.
+- `APP_PUBLIC_URL` is the base for verification and password reset
+  email links. It is validated at CDK synth time by
+  `infra/auth/lib/AppPublicUrl.ts` and the deploy fails before any
+  Lambda is updated when the value is missing, empty, `*`, relative,
+  not a URL, not `https`, or has a trailing slash. Email links can
+  never be built from a wildcard, so `*` is explicitly rejected and
+  the error message points the reader at `APP_ORIGINS`.
 
 ### Gmail app password
 
@@ -191,7 +206,9 @@ pnpm --filter @gym/auth deploy             # apply
 `setup` generates the ES256 key pair on first run, stores the
 private key as an SSM SecureString and the public key as a String,
 and copies SMTP + APP_ORIGINS into SSM. AWS keys never leave the
-local filesystem.
+local filesystem. `APP_PUBLIC_URL` is read at CDK synth time only
+and is baked into each Lambda as an environment variable; it is
+intentionally not stored in SSM.
 
 ## Tests
 

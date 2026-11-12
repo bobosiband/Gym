@@ -13,17 +13,17 @@ export class AppPublicUrl {
   /**
    * Validate and normalise a raw `APP_PUBLIC_URL` value.
    *
-   * Accepts an absolute https URL. Trims surrounding whitespace and
-   * strips any trailing slashes so a downstream link builder can
-   * safely concatenate `${base}/${path}` without producing a double
-   * slash.
+   * Accepts an absolute https URL with no trailing slash. Trims
+   * surrounding whitespace; otherwise the returned value is identical
+   * to the input so the configured URL and the URL used to build email
+   * links stay byte-identical.
    *
    * @param raw The raw value, typically `process.env['APP_PUBLIC_URL']`.
    * @returns The normalised value suitable for link construction.
    * @throws {Error} When the value is missing, empty, `'*'`, not a
-   *   parseable URL, or does not use the `https:` protocol. The
-   *   message is actionable and names both the offending value and
-   *   where to fix it.
+   *   parseable URL, does not use the `https:` protocol, or ends with
+   *   a slash. The message is actionable and names both the offending
+   *   value and where to fix it.
    */
   public static resolve(raw: string | undefined): string {
     if (raw === undefined) {
@@ -57,6 +57,12 @@ export class AppPublicUrl {
         `APP_PUBLIC_URL must use https, got protocol '${parsed.protocol}' for value '${value}'.`
       );
     }
-    return parsed.origin + parsed.pathname.replace(/\/+$/, '');
+    if (value.endsWith('/')) {
+      throw new Error(
+        `APP_PUBLIC_URL must not end with a trailing slash, got '${value}'. ` +
+          'Remove the trailing slash so email link construction has exactly one joiner.'
+      );
+    }
+    return value;
   }
 }
