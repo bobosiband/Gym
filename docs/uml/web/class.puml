@@ -135,6 +135,10 @@ package "apps/web/src" {
       - renderer: SkeletonRenderer
       + render(): JSX.Element
     }
+    class Feedback <<type>> {
+      + level: "ok" | "warn" | "info"
+      + message: string
+    }
     class DefaultExerciseCounterRegistryFactory <<factory>>
   }
 }
@@ -171,6 +175,7 @@ HistoryScreen ..> LoggingApiClient
 ExerciseCounter --> ExerciseCounterRegistry
 ExerciseCounterRegistry --> ExerciseCounterComponent
 PushupExerciseCounter ..|> ExerciseCounterComponent
+PushupExerciseCounter ..> Feedback
 DefaultExerciseCounterRegistryFactory --> ExerciseCounterRegistry
 DefaultExerciseCounterRegistryFactory ..> PushupExerciseCounter
 

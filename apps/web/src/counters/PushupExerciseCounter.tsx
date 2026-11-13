@@ -100,19 +100,20 @@ export default function PushupExerciseCounter(props: ExerciseCounterProps): JSX.
   }, []);
 
   const inPosition = phase === 'up' || phase === 'down' || phase === 'dropout';
-  const postureLabel = inPosition
-    ? 'In position'
-    : failReason !== null
-      ? `Get into position (${failReason})`
-      : 'Get into position';
+  const feedback = resolveFeedback(inPosition, failReason);
+  const setupHint =
+    status === 'idle' || status === 'starting'
+      ? 'Place your phone on the floor in front of you, about an arm’s length away, so your head, shoulders and arms are in view.'
+      : null;
 
   return (
     <section aria-labelledby="exercise-counter-title" className="exercise-counter">
       <h2 id="exercise-counter-title">Push-up counter</h2>
+      {setupHint !== null ? <p className="exercise-counter-setup-hint">{setupHint}</p> : null}
       <p className="exercise-counter-stats">
         <strong aria-label="rep count">{count}</strong> reps
         {angle !== null ? (
-          <span className="exercise-counter-signal"> | elbow {Math.round(angle)} degrees</span>
+          <span className="exercise-counter-signal"> | signal {angle.toFixed(2)}</span>
         ) : null}
         <span className="exercise-counter-signal"> | phase {phase}</span>
         <span className="exercise-counter-signal"> | view {view}</span>
@@ -120,9 +121,9 @@ export default function PushupExerciseCounter(props: ExerciseCounterProps): JSX.
       <p
         role="status"
         aria-live="polite"
-        className={`exercise-counter-posture exercise-counter-posture-${inPosition ? 'ok' : 'warn'}`}
+        className={`exercise-counter-posture exercise-counter-posture-${feedback.level}`}
       >
-        {postureLabel}
+        {feedback.message}
       </p>
       <div className="exercise-counter-stage">
         <video ref={videoRef} className="exercise-counter-video" playsInline muted />
@@ -185,6 +186,37 @@ function drawOverlay(
     return;
   }
   renderer.render(context, landmarks, { width, height }, { mirrored: true });
+}
+
+interface Feedback {
+  readonly level: 'ok' | 'warn' | 'info';
+  readonly message: string;
+}
+
+/**
+ * Translate the detector's `failReason` plus the current posture state
+ * into the user-facing status line. Pairs the short, concrete tags
+ * from {@link StrictPushupRepDetector} ("go lower", "lock out at the
+ * top", "rep timing out of range") with full English sentences the
+ * user can act on, so a rejected rep is never silent.
+ */
+function resolveFeedback(inPosition: boolean, failReason: string | null): Feedback {
+  if (!inPosition) {
+    if (failReason !== null) {
+      return { level: 'warn', message: `Get into position (${failReason})` };
+    }
+    return { level: 'warn', message: 'Get into position' };
+  }
+  if (failReason === 'go lower') {
+    return { level: 'info', message: 'Go lower' };
+  }
+  if (failReason === 'lock out at the top') {
+    return { level: 'info', message: 'Lock out at the top' };
+  }
+  if (failReason === 'rep timing out of range') {
+    return { level: 'info', message: 'Slow the rep down a touch' };
+  }
+  return { level: 'ok', message: 'In position' };
 }
 
 /**

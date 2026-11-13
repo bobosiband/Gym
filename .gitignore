@@ -69,3 +69,7 @@ Thumbs.db
 .plantuml-cache/
 *.puml.svg.tmp
 .vercel
+
+# Test clips (push-up fixtures are generated from these but the videos are never committed)
+test-videos/
+
