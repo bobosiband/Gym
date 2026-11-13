@@ -25,10 +25,7 @@ export { SideArmElbowStrategy } from './strategies/SideArmElbowStrategy.js';
 export type { SideArmElbowStrategyOptions } from './strategies/SideArmElbowStrategy.js';
 export { PostureHoldTolerance } from './strategies/PostureHoldTolerance.js';
 export type { PostureHoldToleranceOptions } from './strategies/PostureHoldTolerance.js';
-export type {
-  PushupRepStrategy,
-  PushupRepStrategyResult,
-} from './strategies/PushupRepStrategy.js';
+export type { PushupRepStrategy, PushupRepStrategyResult } from './strategies/PushupRepStrategy.js';
 export { AngleSmoother } from './strategies/AngleSmoother.js';
 export { ElbowAngleStrategy } from './strategies/ElbowAngleStrategy.js';
 export type { ElbowAngleStrategyOptions, ElbowReading } from './strategies/ElbowAngleStrategy.js';

@@ -130,10 +130,7 @@ export type { PushupViewKind };
  * `signalValue: undefined` to an observation would fail the
  * `signalValue?: number` typing on {@link RepObservation}.
  */
-function withOptional(
-  base: RepObservation,
-  result: PushupRepStrategyResult
-): RepObservation {
+function withOptional(base: RepObservation, result: PushupRepStrategyResult): RepObservation {
   let observation: RepObservation = base;
   if (result.signalValue !== undefined) {
     observation = { ...observation, signalValue: result.signalValue };

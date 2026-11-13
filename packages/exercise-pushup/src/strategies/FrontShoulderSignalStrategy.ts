@@ -162,8 +162,7 @@ export class FrontShoulderSignalStrategy implements PushupRepStrategy {
       depthAsWidths >= downAbs ||
       (this.peakY !== null && depthRatio >= this.options.downEnterDepth);
     const depthUp =
-      depthAsWidths <= upAbs ||
-      (this.peakY !== null && depthRatio <= this.options.upExitDepth);
+      depthAsWidths <= upAbs || (this.peakY !== null && depthRatio <= this.options.upExitDepth);
 
     if (depthDown && widthOk) {
       if (this.phase !== 'down') {

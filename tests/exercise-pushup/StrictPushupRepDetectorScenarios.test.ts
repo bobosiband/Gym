@@ -37,7 +37,12 @@ describe('StrictPushupRepDetector scenarios', () => {
     // Prime the baseline with a quiet top window so calibration anchors a tight "up" reference.
     for (let i = 0; i < 10; i += 1) {
       counter.processFrame(
-        frontPushupFrame({ leftElbowDeg: 170, rightElbowDeg: 170, shoulderY: 0.2, shoulderHalfWidth: 0.15 })
+        frontPushupFrame({
+          leftElbowDeg: 170,
+          rightElbowDeg: 170,
+          shoulderY: 0.2,
+          shoulderHalfWidth: 0.15,
+        })
       );
       clock.advance(100);
     }

@@ -73,9 +73,7 @@ describe('SideArmElbowStrategy', () => {
 
   it('surfaces "go lower" when a rep attempt never reaches the down threshold', () => {
     const strategy = new SideArmElbowStrategy();
-    const angles = [
-      170, 170, 170, 170, 170, 110, 110, 110, 170, 170, 170, 170,
-    ];
+    const angles = [170, 170, 170, 170, 170, 110, 110, 110, 170, 170, 170, 170];
     let lastFailReason: string | undefined;
     let nowMs = 1000;
     for (const a of angles) {

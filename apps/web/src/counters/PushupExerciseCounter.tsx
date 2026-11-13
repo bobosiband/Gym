@@ -109,9 +109,7 @@ export default function PushupExerciseCounter(props: ExerciseCounterProps): JSX.
   return (
     <section aria-labelledby="exercise-counter-title" className="exercise-counter">
       <h2 id="exercise-counter-title">Push-up counter</h2>
-      {setupHint !== null ? (
-        <p className="exercise-counter-setup-hint">{setupHint}</p>
-      ) : null}
+      {setupHint !== null ? <p className="exercise-counter-setup-hint">{setupHint}</p> : null}
       <p className="exercise-counter-stats">
         <strong aria-label="rep count">{count}</strong> reps
         {angle !== null ? (
