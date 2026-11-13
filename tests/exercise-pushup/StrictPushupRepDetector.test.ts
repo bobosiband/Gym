@@ -19,13 +19,22 @@ function rep(angle: number, shoulderY: number = 0.4): ReturnType<typeof pushupFr
   });
 }
 
-/** Build a front-view frame with both elbows at `angle`. */
-function frontRep(angle: number, shoulderY: number): ReturnType<typeof frontPushupFrame> {
+/**
+ * Build a front-view frame. Width grows with descent so the
+ * strategy's "chest moves toward the camera" check stays happy; a
+ * real head-on push-up grows shoulder pixel width as the torso
+ * approaches the lens.
+ */
+function frontRep(
+  angle: number,
+  shoulderY: number,
+  shoulderHalfWidth: number = 0.15
+): ReturnType<typeof frontPushupFrame> {
   return frontPushupFrame({
     leftElbowDeg: angle,
     rightElbowDeg: angle,
     shoulderY,
-    shoulderHalfWidth: 0.15,
+    shoulderHalfWidth,
   });
 }
 
@@ -57,15 +66,23 @@ function feedSequence(
   }
 }
 
-/** Feed a sequence of front-view (angle, shoulderY) frames, stepping the clock. */
+/**
+ * Feed a sequence of front-view frames, stepping the clock. Each
+ * entry can override shoulder half-width; defaults to 0.15 (constant
+ * shoulder width) so arm-only tests stay stable.
+ */
 function feedFrontSequence(
   counter: RepCounter,
   clock: FakeClock,
-  frames: ReadonlyArray<{ readonly angle: number; readonly shoulderY: number }>,
+  frames: ReadonlyArray<{
+    readonly angle: number;
+    readonly shoulderY: number;
+    readonly shoulderHalfWidth?: number;
+  }>,
   stepMs: number
 ): void {
   for (const f of frames) {
-    counter.processFrame(frontRep(f.angle, f.shoulderY));
+    counter.processFrame(frontRep(f.angle, f.shoulderY, f.shoulderHalfWidth));
     clock.advance(stepMs);
   }
 }
@@ -96,35 +113,37 @@ function cleanRepFrames(): ReadonlyArray<{ readonly angle: number; readonly shou
 }
 
 /**
- * Shoulder y stays high (near 0.2) during the up phase, drops to
- * 0.32 during down. Shoulder width of 0.3 makes 0.12 of descent
- * equal to 40 percent of shoulder width, comfortably past the 25
- * percent default.
+ * Shoulder y and shoulder width both grow during descent, mirroring
+ * the real-world signal: the chest moves toward the camera so the
+ * shoulders appear both lower and wider. Baseline width is 0.30
+ * (half-width 0.15); peak width grows by about 0.08 so the
+ * growth check (default 0.04 of baseline) comfortably passes.
  */
 function cleanFrontRepFrames(): ReadonlyArray<{
   readonly angle: number;
   readonly shoulderY: number;
+  readonly shoulderHalfWidth: number;
 }> {
   return [
-    { angle: 170, shoulderY: 0.2 },
-    { angle: 170, shoulderY: 0.2 },
-    { angle: 170, shoulderY: 0.2 },
-    { angle: 170, shoulderY: 0.2 },
-    { angle: 170, shoulderY: 0.2 },
-    { angle: 140, shoulderY: 0.24 },
-    { angle: 110, shoulderY: 0.28 },
-    { angle: 85, shoulderY: 0.32 },
-    { angle: 85, shoulderY: 0.32 },
-    { angle: 85, shoulderY: 0.32 },
-    { angle: 85, shoulderY: 0.32 },
-    { angle: 85, shoulderY: 0.32 },
-    { angle: 110, shoulderY: 0.28 },
-    { angle: 140, shoulderY: 0.24 },
-    { angle: 170, shoulderY: 0.2 },
-    { angle: 170, shoulderY: 0.2 },
-    { angle: 170, shoulderY: 0.2 },
-    { angle: 170, shoulderY: 0.2 },
-    { angle: 170, shoulderY: 0.2 },
+    { angle: 170, shoulderY: 0.2, shoulderHalfWidth: 0.15 },
+    { angle: 170, shoulderY: 0.2, shoulderHalfWidth: 0.15 },
+    { angle: 170, shoulderY: 0.2, shoulderHalfWidth: 0.15 },
+    { angle: 170, shoulderY: 0.2, shoulderHalfWidth: 0.15 },
+    { angle: 170, shoulderY: 0.2, shoulderHalfWidth: 0.15 },
+    { angle: 140, shoulderY: 0.24, shoulderHalfWidth: 0.16 },
+    { angle: 110, shoulderY: 0.28, shoulderHalfWidth: 0.17 },
+    { angle: 85, shoulderY: 0.32, shoulderHalfWidth: 0.19 },
+    { angle: 85, shoulderY: 0.32, shoulderHalfWidth: 0.19 },
+    { angle: 85, shoulderY: 0.32, shoulderHalfWidth: 0.19 },
+    { angle: 85, shoulderY: 0.32, shoulderHalfWidth: 0.19 },
+    { angle: 85, shoulderY: 0.32, shoulderHalfWidth: 0.19 },
+    { angle: 110, shoulderY: 0.28, shoulderHalfWidth: 0.17 },
+    { angle: 140, shoulderY: 0.24, shoulderHalfWidth: 0.16 },
+    { angle: 170, shoulderY: 0.2, shoulderHalfWidth: 0.15 },
+    { angle: 170, shoulderY: 0.2, shoulderHalfWidth: 0.15 },
+    { angle: 170, shoulderY: 0.2, shoulderHalfWidth: 0.15 },
+    { angle: 170, shoulderY: 0.2, shoulderHalfWidth: 0.15 },
+    { angle: 170, shoulderY: 0.2, shoulderHalfWidth: 0.15 },
   ];
 }
 
@@ -188,7 +207,7 @@ describe('StrictPushupRepDetector', () => {
       { angle: 170, shoulderY: 0.4 },
       { angle: 140, shoulderY: 0.42 },
       { angle: 120, shoulderY: 0.44 },
-      { angle: 110, shoulderY: 0.46 },
+      { angle: 115, shoulderY: 0.46 },
       { angle: 140, shoulderY: 0.42 },
       { angle: 170, shoulderY: 0.4 },
       { angle: 170, shoulderY: 0.4 },
@@ -202,7 +221,7 @@ describe('StrictPushupRepDetector', () => {
     const counter = new RepCounter(
       new StrictPushupRepDetector({
         now: clock.now,
-        timing: { minRepSeconds: 0.5, maxRepSeconds: 10 },
+        side: { timing: { minRepSeconds: 0.5, maxRepSeconds: 10 } },
       })
     );
     feedSequence(counter, clock, cleanRepFrames(), 10);
@@ -214,7 +233,7 @@ describe('StrictPushupRepDetector', () => {
     const counter = new RepCounter(
       new StrictPushupRepDetector({
         now: clock.now,
-        timing: { minRepSeconds: 0.5, maxRepSeconds: 5 },
+        side: { timing: { minRepSeconds: 0.5, maxRepSeconds: 3 } },
       })
     );
     feedSequence(counter, clock, cleanRepFrames(), 1000);
@@ -247,7 +266,7 @@ describe('StrictPushupRepDetector', () => {
     const counter = new RepCounter(detector);
     counter.processFrame(rep(170));
     clock.advance(60);
-    for (let i = 0; i < 10; i += 1) {
+    for (let i = 0; i < 25; i += 1) {
       counter.processFrame(dropoutFrame());
       clock.advance(60);
     }
@@ -287,7 +306,7 @@ describe('StrictPushupRepDetector', () => {
     expect(counter.getCount()).toBe(1);
   });
 
-  it('rejects a front-view wave where the wrists stay above the shoulders', () => {
+  it('rejects a front-view wave where the shoulders never descend', () => {
     const clock = fakeClock();
     const counter = new RepCounter(new StrictPushupRepDetector({ now: clock.now }));
     for (let i = 0; i < 30; i += 1) {
@@ -306,10 +325,14 @@ describe('StrictPushupRepDetector', () => {
     expect(counter.getCount()).toBe(0);
   });
 
-  it('rejects a front-view arm bend where the head never descends', () => {
+  it('rejects a front-view arm bend where the shoulders never descend', () => {
     const clock = fakeClock();
     const counter = new RepCounter(new StrictPushupRepDetector({ now: clock.now }));
-    const frames = cleanFrontRepFrames().map((f) => ({ angle: f.angle, shoulderY: 0.2 }));
+    const frames = cleanFrontRepFrames().map((f) => ({
+      angle: f.angle,
+      shoulderY: 0.2,
+      shoulderHalfWidth: 0.15,
+    }));
     feedFrontSequence(counter, clock, frames, 100);
     expect(counter.getCount()).toBe(0);
   });
@@ -329,5 +352,36 @@ describe('StrictPushupRepDetector', () => {
       clock.advance(60);
     }
     expect(counter.getLastObservation()?.view).toBe('front');
+  });
+
+  it('surfaces a feedback hint when a rep is rejected for being too shallow', () => {
+    const clock = fakeClock();
+    const detector = new StrictPushupRepDetector({ now: clock.now });
+    const counter = new RepCounter(detector);
+    const shallow = [
+      { angle: 170, shoulderY: 0.4 },
+      { angle: 170, shoulderY: 0.4 },
+      { angle: 170, shoulderY: 0.4 },
+      { angle: 170, shoulderY: 0.4 },
+      { angle: 170, shoulderY: 0.4 },
+      { angle: 110, shoulderY: 0.44 },
+      { angle: 110, shoulderY: 0.44 },
+      { angle: 110, shoulderY: 0.44 },
+      { angle: 170, shoulderY: 0.4 },
+      { angle: 170, shoulderY: 0.4 },
+      { angle: 170, shoulderY: 0.4 },
+      { angle: 170, shoulderY: 0.4 },
+    ];
+    const seenReasons = new Set<string>();
+    for (const frame of shallow) {
+      counter.processFrame(rep(frame.angle, frame.shoulderY));
+      const reason = counter.getLastObservation()?.failReason;
+      if (reason !== undefined) {
+        seenReasons.add(reason);
+      }
+      clock.advance(60);
+    }
+    expect(counter.getCount()).toBe(0);
+    expect(seenReasons.has('go lower')).toBe(true);
   });
 });

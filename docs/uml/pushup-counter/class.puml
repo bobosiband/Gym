@@ -54,14 +54,27 @@ package "@gym/exercise-pushup" {
   class PushupRepDetector
   class StrictPushupRepDetector {
     - viewDetector: ViewDetector
-    - positionGate: CompositePushupPositionGate
-    - elbowStrategy: ElbowAngleStrategy
-    - descent: CompositeDescentStrategy
-    - dropout: DropoutTolerance
-    - timing: RepTimingGate
-    - maxSmoother: AngleSmoother
-    - minSmoother: AngleSmoother
+    - frontStrategy: PushupRepStrategy
+    - sideStrategy: PushupRepStrategy
+    - postureHold: PostureHoldTolerance
     + processFrame(landmarks): RepObservation
+    + reset(): void
+  }
+  interface PushupRepStrategy {
+    + processFrame(landmarks, nowMs): PushupRepStrategyResult
+    + reset(): void
+  }
+  class FrontShoulderSignalStrategy {
+    + processFrame(landmarks, nowMs): PushupRepStrategyResult
+    + reset(): void
+  }
+  class SideArmElbowStrategy {
+    + processFrame(landmarks, nowMs): PushupRepStrategyResult
+    + reset(): void
+  }
+  class PostureHoldTolerance {
+    + observeOk(): void
+    + observeMiss(nowMs): boolean
     + reset(): void
   }
   interface PushupPositionGate {
@@ -156,12 +169,15 @@ PushupRepDetector ..> PoseGeometry
 PushupRepDetector ..> PoseLandmarkIndex
 StrictPushupRepDetector ..|> RepDetector
 StrictPushupRepDetector --> ViewDetector
-StrictPushupRepDetector --> CompositePushupPositionGate
-StrictPushupRepDetector --> CompositeDescentStrategy
-StrictPushupRepDetector --> ElbowAngleStrategy
-StrictPushupRepDetector --> DropoutTolerance
-StrictPushupRepDetector --> RepTimingGate
-StrictPushupRepDetector --> AngleSmoother
+StrictPushupRepDetector --> PushupRepStrategy
+StrictPushupRepDetector --> PostureHoldTolerance
+FrontShoulderSignalStrategy ..|> PushupRepStrategy
+SideArmElbowStrategy ..|> PushupRepStrategy
+FrontShoulderSignalStrategy --> AngleSmoother
+FrontShoulderSignalStrategy --> RepTimingGate
+SideArmElbowStrategy --> AngleSmoother
+SideArmElbowStrategy --> RepTimingGate
+SideArmElbowStrategy ..> PoseGeometry
 PostureGate ..|> PushupPositionGate
 FrontPostureGate ..|> PushupPositionGate
 ShoulderDropStrategy ..|> DescentStrategy
